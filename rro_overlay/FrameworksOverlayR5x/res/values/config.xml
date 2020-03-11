@@ -473,4 +473,7 @@
          the blur effect where it isn't worth the performance hit.
          As of Honeycomb, blurring is not supported anymore. -->
     <bool name="config_sf_slowBlur">false</bool>
+
+    <!-- Unify back gesture vibration with system wide haptics -->
+    <bool name="config_vibrateOnIconAnimation">true</bool>
 </resources>
