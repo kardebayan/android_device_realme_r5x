@@ -46,6 +46,9 @@ genfscon sysfs /devices/virtual/misc/msm_wmapro/wakeup u:object_r:sysfs_wakeup:s
 # Power
 genfscon proc /sys/kernel/sched_energy_aware     u:object_r:proc_sched_energy_aware:s0
 
+# Battery Saver
+genfscon sysfs /module/battery_saver/parameters/enabled  u:object_r:sysfs_battery_saver:s0
+
 # Devinfo
 genfscon proc /devinfo        u:object_r:proc_devinfo:s0
 
