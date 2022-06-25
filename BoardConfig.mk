@@ -104,9 +104,6 @@ TARGET_KERNEL_SOURCE := kernel/realme/r5x
 TARGET_KERNEL_CONFIG := vendor/trinket-perf_defconfig vendor/r5x.config
 TARGET_KERNEL_NO_GCC := true
 
-# NFC
-TARGET_USES_NQ_NFC := true
-
 # Partitions
 BOARD_FLASH_BLOCK_SIZE := 131072 # (BOARD_KERNEL_PAGESIZE * 64)
 BOARD_BOOTIMAGE_PARTITION_SIZE := 67108864
