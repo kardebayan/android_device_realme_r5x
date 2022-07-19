@@ -107,6 +107,7 @@ BOARD_KERNEL_CMDLINE := \
     swiotlb=1 \
     earlycon=msm_geni_serial,0x4a90000 \
     loop.max_part=7 \
+    cgroup_disable=pressure \
     cgroup.memory=nokmem,nosocket
 
 BOARD_KERNEL_CMDLINE += androidboot.android_dt_dir=/non-existent androidboot.boot_devices=soc/4744000.sdhci
