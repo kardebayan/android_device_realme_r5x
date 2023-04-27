@@ -1,0 +1,5 @@
+device/realme/
+vendor/realme/
+kernel/realme/
+frameworks/base
+vendor/nxp/opensource/commonsys/packages/apps/Nfc
