@@ -3071,6 +3071,11 @@ vendor/etc/sn100u_pnx_ese_sn.pnscr
 vendor/etc/sn100u_pnx_ndi.pnscr
 vendor/etc/sn100u_pnx_pcv.pnscr
 vendor/etc/sn100u_pnx_sst.pnscr
+vendor/etc/libese-nxp.conf
+vendor/etc/libnfc-nci.conf
+vendor/etc/libnfc-nxp-pnscr.conf
+vendor/etc/libnfc-nxp.conf
+vendor/etc/libnfc-nxp_RF.conf
 
 # Pasrmanager
 vendor/bin/hw/vendor.qti.power.pasrmanager@1.0-service
