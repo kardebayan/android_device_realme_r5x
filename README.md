@@ -27,4 +27,4 @@ The Realme 5, Realme 5s, Realme 5i are mid-range smartphones from Realme. These 
 
 ## Device picture
 
-![Realme 5 Series](https://fdn2.gsmarena.com/vv/pics/realme/realme-5-rmx1911-2.jpg)
+![Realme 5 Series](https://telegra.ph/file/b2a88ce4ecca4d7b379e2.jpg)
