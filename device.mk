@@ -167,6 +167,7 @@ PRODUCT_PACKAGES += \
     android.hardware.gnss@2.1-service-qti \
     libbatching \
     libloc_net_iface \
+    libloc_net_iface.vendor \
     liblocdiagiface \
     libgeofencing \
     libgnss \
