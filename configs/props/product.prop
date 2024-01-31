@@ -43,6 +43,7 @@ debug.hwui.renderer=opengl
 renderthread.skia.reduceopstasksplitting=true 
 debug.renderengine.backend=skiaglthreaded
 debug.sdm.support_writeback=0
+debug.sf.disable_hwc_overlays=1
 
 # Incremental FS
 ro.incremental.enable=1
