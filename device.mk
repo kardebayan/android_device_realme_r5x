@@ -470,6 +470,14 @@ PRODUCT_COPY_FILES += \
 # Vibrator
 $(call inherit-product, vendor/qcom/opensource/vibrator/vibrator-vendor-product.mk)
 
+# VNDK
+PRODUCT_PRODUCT_VNDK_VERSION := current
+PRODUCT_ENFORCE_PRODUCT_PARTITION_INTERFACE := true
+
+PRODUCT_PACKAGES += \
+    vndk_package \
+    com.android.vndk.current.on_vendor
+
 # V4a
 $(call inherit-product-if-exists, packages/apps/ViPER4AndroidFX/config.mk)
 
