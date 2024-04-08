@@ -389,10 +389,6 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     RealmeParts
 
-# Remove Unwanted Packages
-PRODUCT_PACKAGES += \
-    RemovePackages
-
 # RIL
 PRODUCT_PACKAGES += \
     android.hardware.radio@1.4 \
