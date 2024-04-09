@@ -2276,10 +2276,8 @@ vendor/lib64/libsdmextension.so|76ef1430f700480509b5f991e031447fea9ddb01
 vendor/lib64/libtinyxml2_1.so|ff32deb110acb02cb5def5f3404f9064c1276483
 
 # Health
-vendor/bin/hw/android.hardware.health@2.0-service
 vendor/bin/hw/android.hardware.health@2.0-service.oppo
 vendor/etc/init/android.hardware.health@2.0-service.oppo.rc
-vendor/etc/init/android.hardware.health@2.0-service.rc
 
 # IPA - from qssi-user-11-RKQ1.200903.002-1651143221904-release-keys
 vendor/firmware/ipa_fws.b00|aade3e72dc69e9649b73fa9363985c0997437854
