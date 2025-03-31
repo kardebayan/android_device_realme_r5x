@@ -197,6 +197,9 @@ PRODUCT_ENABLE_UFFD_GC := true
 PRODUCT_PACKAGES += \
     android.hardware.light-service.lineage
 
+# Matlog
+TARGET_DISABLE_MATLOG := true
+
 # Media
 TARGET_SUPPORTS_OMX_SERVICE := false
 
