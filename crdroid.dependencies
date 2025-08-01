@@ -1,0 +1,14 @@
+[
+  {
+    "repository": "crdroidandroid/android_hardware_dolby",
+    "target_path": "hardware/dolby"
+  },
+  {
+    "repository": "crdroidandroid/android_kernel_realme_r5x",
+    "target_path": "kernel/realme/r5x"
+  },
+  {
+    "repository": "crdroidandroid/proprietary_vendor_realme_r5x",
+    "target_path": "vendor/realme/r5x"
+  }
+]
