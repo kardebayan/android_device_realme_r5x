@@ -105,7 +105,6 @@ TARGET_KERNEL_SOURCE := kernel/realme/r5x
 TARGET_KERNEL_CLANG_COMPILE := true
 TARGET_KERNEL_CONFIG := vendor/trinket-perf_defconfig vendor/r5x.config
 TARGET_KERNEL_ADDITIONAL_FLAGS := LLVM=1 LLVM_IAS=1
-KERNEL_LD := LD=ld.lld
 
 # NFC
 TARGET_USES_NQ_NFC := true
