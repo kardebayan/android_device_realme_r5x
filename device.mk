@@ -67,9 +67,6 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.bluetooth_le.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.bluetooth_le.xml \
     frameworks/native/data/etc/android.hardware.bluetooth.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.bluetooth.xml
 
-# Blur
-TARGET_ENABLE_BLUR := true
-
 # Camera
 PRODUCT_PACKAGES += \
     android.hardware.camera.provider-service_32.lineage
@@ -197,9 +194,6 @@ PRODUCT_ENABLE_UFFD_GC := true
 # Lights
 PRODUCT_PACKAGES += \
     android.hardware.light-service.lineage
-
-# Matlog
-TARGET_DISABLE_MATLOG := true
 
 # Media
 TARGET_SUPPORTS_OMX_SERVICE := false

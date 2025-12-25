@@ -129,8 +129,6 @@ BOARD_SUPER_PARTITION_GROUPS := r5x_dynpart
 BOARD_R5X_DYNPART_SIZE := $(shell expr $(BOARD_SUPER_PARTITION_SIZE) - 4194304 )
 BOARD_R5X_DYNPART_PARTITION_LIST := odm product system system_ext vendor
 
--include vendor/lineage/config/BoardConfigReservedSize.mk
-
 BOARD_VENDORIMAGE_PARTITION_RESERVED_SIZE := 150000000
 
 BOARD_ROOT_EXTRA_SYMLINKS := \
