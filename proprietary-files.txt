@@ -95,7 +95,7 @@ vendor/lib64/libaudio_log_utils.so
 # Audio Power Amplifier
 vendor/firmware/tfa98xx.cnt
 
-# Bluetooth - from sweet_V816.0.3.0.THGMIXM
+# Bluetooth - from sweet_k6a OS1.0.33.0.THGMIXM
 vendor/bin/hw/android.hardware.bluetooth@1.0-service-qti|07d96d0d3c4a500b14ea3c97e02b9eb5ee2bbc4d
 vendor/etc/init/android.hardware.bluetooth@1.0-service-qti.rc|f4ee3b2da2b08647447869ade86ec63f7340accc
 vendor/lib/hw/android.hardware.bluetooth@1.0-impl-qti.so|63a1b4493c77f382a137110be07078333951deb2
@@ -1645,7 +1645,7 @@ vendor/firmware/a630_gmu.bin|32bb4acc7767c47ddb487ed7cb998d465ee462f2
 vendor/firmware/a630_sqe.fw|e25094f97b44244775cc38a9d909fba6bd4cf76b
 vendor/firmware/a640_gmu.bin|fb1eab0dd5f313abf31441e2209c9398da7df98b
 
-# Graphics (Adreno) - from sweet_k6a OS1.0.23.0.THGMIXM
+# Graphics (Adreno) - from sweet_k6a OS1.0.33.0.THGMIXM
 vendor/lib/egl/eglSubDriverAndroid.so|2caaf6ab18cfe56f6d445b60cb62f81b18bc31d2
 vendor/lib/egl/libEGL_adreno.so;SYMLINK=vendor/lib/libEGL_adreno.so|e6382c9115d5d471c32c010fc50dcbbf6a523d1f
 vendor/lib/egl/libGLESv1_CM_adreno.so|715f3463528f1e74ffa02627ee5916a09e0748f5
@@ -1680,10 +1680,10 @@ vendor/lib64/libllvm-qcom.so|512c0db7ea845f992f382e53da4ca4c988dc5837
 # Graphics (DRM) - from NX627J
 vendor/lib64/libsdedrm.so|582910d21139781ad9e414c35207584f51e035e2
 
-# Graphics (HDR) - from sweet_k6a OS1.0.23.0.THGMIXM
+# Graphics (HDR) - from sweet_k6a OS1.0.33.0.THGMIXM
 vendor/lib64/libhdr_tm.so|9977b4ccb6667d990210c1ac980e55325f7e7a50
 
-# Graphics (SDM) - from sweet_k6a OS1.0.23.0.THGMIXM
+# Graphics (SDM) - from sweet_k6a OS1.0.33.0.THGMIXM
 vendor/lib64/libqseed3.so|7f2a659fb9acd84d79c11dbd6901b816d5d1214f
 vendor/lib64/libsdm-color.so|2595b34578b078e0595ce555f714a74d676ef501
 vendor/lib64/libsdm-colormgr-algo.so|073245d67ec606f7b73c34e2b4956ebcc81b350c
@@ -1723,7 +1723,7 @@ vendor/lib/libgcs.so|5429f4a5329421341d6460b7c218f035e0757cf0
 vendor/lib/liblistensoundmodel2.so|21c2a856584c301edda81b5fa3740d5ef2a96e8c
 vendor/lib/libsmwrapper.so|af37e8bd00fd4130094349c1d94e83c5b0c20550
 
-# Media from sweet_k6a OS1.0.23.0.THGMIXM
+# Media from sweet_k6a OS1.0.33.0.THGMIXM
 vendor/bin/hw/vendor.qti.media.c2@1.0-service|83c2effb6f76cb095bae840d95a2026014d92fe9
 vendor/bin/vppservice|ba26483eeedd023485c41c58352251e0b5bf53f6
 vendor/etc/configstore/vpp.configstore.xml|ed961545186c66fd9523f25866c74f2e11ee63d7
