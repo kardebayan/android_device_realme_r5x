@@ -239,7 +239,8 @@ PRODUCT_PACKAGES += \
     TetheringConfigOverlayR5x \
     NcmTetheringOverlay \
     BluetoothOverlayR5x \
-    ApertureOverlay
+    ApertureOverlay \
+    RILFrameworksOverlayR5x
 
 DEVICE_PACKAGE_OVERLAYS += \
     $(LOCAL_PATH)/overlay-lineage
