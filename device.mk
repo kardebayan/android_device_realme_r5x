@@ -101,6 +101,7 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.touchscreen.multitouch.jazzhand.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.touchscreen.multitouch.jazzhand.xml
 
 $(call soong_config_set,qtidisplay,gralloc_handle_has_reserved_size,true)
+$(call soong_config_set_bool,surfaceflinger,register_displayservice,true)
 
 # DRM
 PRODUCT_PACKAGES += \
