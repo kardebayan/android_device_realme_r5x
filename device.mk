@@ -148,7 +148,7 @@ PRODUCT_COPY_FILES += \
 
 # Health
 PRODUCT_PACKAGES += \
-    android.hardware.health-service.qti
+    android.hardware.health-service.r5x
 
 # HotwordEnrollement app permissions
 PRODUCT_COPY_FILES += \
