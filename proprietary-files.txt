@@ -92,14 +92,6 @@ vendor/lib64/soundfx/libqcbassboost.so|15c134881a4820c8ce034079c427a2a553e57678
 vendor/lib64/soundfx/libqcreverb.so|8cc38013470e0bb109c2dc80c9091cf2fdeac98a
 vendor/lib64/soundfx/libqcvirt.so|b18d59490fbd72cf8fd927995b51a0224edd038c
 
-# Audio-Hardware
-vendor/lib/hw/audio.primary.trinket.so
-vendor/lib/libaudioEngineerTest.so
-vendor/lib/libaudio_log_utils.so
-vendor/lib64/hw/audio.primary.trinket.so
-vendor/lib64/libaudioEngineerTest.so
-vendor/lib64/libaudio_log_utils.so
-
 # Audio Power Amplifier
 vendor/firmware/tfa98xx.cnt
 
