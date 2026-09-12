@@ -1,10 +1,5 @@
 [
   {
-    "repository": "crdroidandroid/android_hardware_dolby",
-    "target_path": "hardware/dolby",
-    "branch": "sony-1.2"
-  },
-  {
     "repository": "crdroidandroid/android_kernel_realme_r5x",
     "target_path": "kernel/realme/r5x"
   },
