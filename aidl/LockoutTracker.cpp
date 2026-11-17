@@ -6,57 +6,63 @@
  */
 
 #include "LockoutTracker.h"
-#include <fingerprint.sysprop.h>
-#include <util/Util.h>
-#include "Fingerprint.h"
 
-using namespace ::android::fingerprint::r5x;
+#include <algorithm>
 
 namespace aidl::android::hardware::biometrics::fingerprint {
 
+// Same policy as the stock FingerprintService (getLockoutMode/handleFailedAttempt):
+// timed lockout on every 5th failure, cleared by a 30s alarm without resetting the
+// counter, permanent lockout at 20 failures.
+namespace {
+constexpr int32_t kLockoutTimedThreshold = 5;
+constexpr int32_t kLockoutPermanentThreshold = 20;
+constexpr auto kLockoutTimedDuration = std::chrono::milliseconds(30000);
+}  // namespace
+
 void LockoutTracker::reset(bool clearAttemptCounter) {
+    std::lock_guard<std::mutex> lock(mMutex);
     if (clearAttemptCounter) {
         mFailedCount = 0;
     }
-    mLockoutTimedStart = 0;
-    mCurrentMode = LockoutMode::kNone;
+    mTimedLockoutCleared = true;
 }
 
 void LockoutTracker::addFailedAttempt() {
+    std::lock_guard<std::mutex> lock(mMutex);
     mFailedCount++;
-    if (mFailedCount >= LOCKOUT_PERMANENT_THRESHOLD) {
-        mCurrentMode = LockoutMode::kPermanent;
-    } else if (mFailedCount >= LOCKOUT_TIMED_THRESHOLD) {
-        if (mCurrentMode == LockoutMode::kNone) {
-            mCurrentMode = LockoutMode::kTimed;
-            mLockoutTimedStart = Util::getSystemNanoTime();
-        }
+    mTimedLockoutCleared = false;
+    if (mFailedCount < kLockoutPermanentThreshold && mFailedCount % kLockoutTimedThreshold == 0) {
+        mLockoutTimedStart = Clock::now();
     }
 }
 
 LockoutTracker::LockoutMode LockoutTracker::getMode() {
-    if (mCurrentMode == LockoutMode::kTimed) {
-        if (Util::hasElapsed(mLockoutTimedStart, LOCKOUT_TIMED_DURATION)) {
-            mCurrentMode = LockoutMode::kNone;
-            mLockoutTimedStart = 0;
-        }
-    }
+    std::lock_guard<std::mutex> lock(mMutex);
+    return getModeLocked();
+}
 
-    return mCurrentMode;
+LockoutTracker::LockoutMode LockoutTracker::getModeLocked() {
+    if (mFailedCount >= kLockoutPermanentThreshold) {
+        return LockoutMode::kPermanent;
+    }
+    if (mFailedCount > 0 && !mTimedLockoutCleared &&
+        mFailedCount % kLockoutTimedThreshold == 0) {
+        if (Clock::now() - mLockoutTimedStart < kLockoutTimedDuration) {
+            return LockoutMode::kTimed;
+        }
+        mTimedLockoutCleared = true;
+    }
+    return LockoutMode::kNone;
 }
 
 int64_t LockoutTracker::getLockoutTimeLeft() {
-    int64_t res = 0;
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (getModeLocked() != LockoutMode::kTimed) return 0;
 
-    if (mLockoutTimedStart > 0) {
-        auto now = Util::getSystemNanoTime();
-        auto elapsed = (now - mLockoutTimedStart) / 1000000LL;
-        res = LOCKOUT_TIMED_DURATION - elapsed;
-        LOG(INFO) << "elapsed=" << elapsed << " now = " << now
-                  << " mLockoutTimedStart=" << mLockoutTimedStart << " res=" << res;
-    }
-
-    return res;
+    auto left = kLockoutTimedDuration - std::chrono::duration_cast<std::chrono::milliseconds>(
+                                                Clock::now() - mLockoutTimedStart);
+    return std::max<int64_t>(left.count(), 0);
 }
 
 }  // namespace aidl::android::hardware::biometrics::fingerprint

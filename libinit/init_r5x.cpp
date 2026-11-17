@@ -46,7 +46,6 @@
 #include "vendor_init.h"
 
 using android::base::GetProperty;
-using android::base::ReadFileToString;
 
 struct r5x_props
 {
@@ -96,18 +95,6 @@ void load_dalvikvm_props() {
         property_override("dalvik.vm.heapminfree", "512k");
    }
     property_override("dalvik.vm.heapsize", "512m");
-}
-
-void init_fp_properties()
-{
-    char const *fp_name_file = "/proc/fp_id";
-    std::string fp_name;
-
-    if (ReadFileToString(fp_name_file, &fp_name)) {
-        if (fp_name == "E_520") {
-            property_override("persist.vendor.fingerprint.fp_id", "E_520");
-        }
-    }
 }
 
 void setRMX(unsigned int variant)
@@ -210,6 +197,5 @@ void init_device_model()
 
 void vendor_load_properties() {
     init_device_model();
-    init_fp_properties();
     load_dalvikvm_props();
 }

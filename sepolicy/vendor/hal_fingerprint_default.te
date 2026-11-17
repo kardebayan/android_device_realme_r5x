@@ -22,3 +22,12 @@ get_prop(hal_fingerprint_default, oppo_debug_prop);
 r_dir_file(hal_fingerprint_default, mnt_vendor_file);
 
 set_prop(hal_fingerprint_default, oppo_fingerprint_prop);
+
+# AIDL HAL: client of the stock vendor.oppo.hardware.biometrics.fingerprint@2.1-service
+allow hal_fingerprint_default hal_fingerprint_hwservice:hwservice_manager find;
+
+# /data/vendor_de/<user>/fpdata, prepared by vold
+allow hal_fingerprint_default vendor_data_file:dir search;
+
+# Reset a hung vendor.oppo service like the stock framework's HealthMonitor did
+allow hal_fingerprint_default self:process signal;

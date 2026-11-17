@@ -4,14 +4,68 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <thread>
-
-#include "Legacy2Aidl.h"
 #include "Session.h"
 
-#include "CancellationSignal.h"
+#include <aidl/android/hardware/biometrics/common/OperationReason.h>
+
+#include <endian.h>
+#include <hardware/hw_auth_token.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <algorithm>
+#include <chrono>
+#include <cinttypes>
+#include <cstring>
+#include <fstream>
+#include <string>
+#include <thread>
 
 namespace aidl::android::hardware::biometrics::fingerprint {
+
+namespace {
+// Same path the stock framework passed to setActiveGroup(), vold prepares it.
+constexpr char kFpDataPath[] = "/data/vendor_de/%d/fpdata";
+// Timeout used for enroll() by the stock framework.
+constexpr uint32_t kEnrollTimeoutSec = 60;
+// The stock framework never called enumerate(), it kept the list onSyncTemplates sent
+// (setActiveGroup, enroll, remove). FPC doesn't report it on a plain setActiveGroup, so
+// it is persisted here like the stock framework persisted its own list.
+constexpr char kTemplatesFile[] = "r5x_templates";
+// fpc do_enroll() reports FPC_ENROL_FAILED_ALREADY_ENROLED as remaining = 9999.
+constexpr uint32_t kFpcRemainingAlreadyEnrolled = 9999;
+
+static_assert(sizeof(hw_auth_token_t) == 69, "stock HAL expects a 69 byte hw_auth_token_t");
+
+hw_auth_token_t toHwAuthToken(const HardwareAuthToken& authToken) {
+    hw_auth_token_t hat = {};
+    hat.challenge = authToken.challenge;
+    hat.user_id = authToken.userId;
+    hat.authenticator_id = authToken.authenticatorId;
+    // these are in host order: translate to network order
+    hat.authenticator_type = htobe32(static_cast<uint32_t>(authToken.authenticatorType));
+    hat.timestamp = htobe64(authToken.timestamp.milliSeconds);
+    std::copy_n(authToken.mac.begin(), std::min(authToken.mac.size(), sizeof(hat.hmac)),
+                hat.hmac);
+    return hat;
+}
+
+HardwareAuthToken toHardwareAuthToken(const hw_auth_token_t& hat) {
+    HardwareAuthToken authToken;
+    authToken.challenge = hat.challenge;
+    authToken.userId = hat.user_id;
+    authToken.authenticatorId = hat.authenticator_id;
+    // these are in network order: translate to host
+    authToken.authenticatorType =
+            static_cast<keymaster::HardwareAuthenticatorType>(be32toh(hat.authenticator_type));
+    authToken.timestamp.milliSeconds = be64toh(hat.timestamp);
+    authToken.mac.assign(std::begin(hat.hmac), std::end(hat.hmac));
+    return authToken;
+}
+
+bool isOk(const Return<OppoRequestStatus>& ret) {
+    return ret.isOk() && static_cast<OppoRequestStatus>(ret) == OppoRequestStatus::SYS_OK;
+}
 
 void onClientDeath(void* cookie) {
     ALOGI("FingerprintService has died");
@@ -20,173 +74,238 @@ void onClientDeath(void* cookie) {
         session->close();
     }
 }
+}  // namespace
 
-Session::Session(fingerprint_device_t* device, int userId, std::shared_ptr<ISessionCallback> cb,
-                 LockoutTracker lockoutTracker)
-    : mDevice(device), mLockoutTracker(lockoutTracker), mUserId(userId), mCb(cb) {
-    mDeathRecipient = AIBinder_DeathRecipient_new(onClientDeath);
+Session::Session(sp<IOppoBiometricsFingerprint> device, sp<OppoClientCallback> clientCallback,
+                 HealthMonitor& health, int32_t userId, std::shared_ptr<ISessionCallback> cb,
+                 LockoutTracker& lockoutTracker)
+    : mDevice(std::move(device)),
+      mClientCallback(std::move(clientCallback)),
+      mHealth(health),
+      mUserId(userId),
+      mCb(std::move(cb)),
+      mLockoutTracker(lockoutTracker),
+      mDeathRecipient(AIBinder_DeathRecipient_new(onClientDeath)) {}
 
-    auto path = std::format(FPDATA_PATH, userId);
-    mDevice->set_active_group(mDevice, mUserId, path.c_str());
+void Session::init() {
+    // The stock service rejects setActiveGroup() unless access(path, W_OK) succeeds.
+    char path[64];
+    snprintf(path, sizeof(path), kFpDataPath, mUserId);
+    if (access(path, F_OK) != 0 && mkdir(path, 0700) != 0) {
+        ALOGE("Failed to create %s: %s", path, strerror(errno));
+    }
+
+    mTemplatesFile = std::string(path) + "/" + kTemplatesFile;
+    {
+        std::lock_guard<std::mutex> lock(mTemplatesMutex);
+        std::ifstream in(mTemplatesFile);
+        for (uint32_t fid; in >> fid;) {
+            if (fid != 0) mTemplates.insert(fid);
+        }
+    }
+
+    mPath = path;
+    connect();
+}
+
+// Same sequence as the stock FingerprintService::getFingerprintDaemon(), which it ran
+// again after ERROR_HW_UNAVAILABLE.
+void Session::connect() {
+    {
+        HealthMonitor::Scope watch(mHealth, "setActiveGroup");
+        if (!isOk(mDevice->setActiveGroup(mUserId, mPath))) {
+            ALOGE("setActiveGroup(%d, %s) failed", mUserId, mPath.c_str());
+        }
+    }
+    HealthMonitor::Scope watch(mHealth, "getEnrollmentTotalTimes");
+    mDevice->getEnrollmentTotalTimes();
+}
+
+void Session::reconnectIfNeeded() {
+    if (!mReconnect.exchange(false)) return;
+    ALOGW("Reconnecting after ERROR_HW_UNAVAILABLE");
+    {
+        HealthMonitor::Scope watch(mHealth, "setNotify");
+        Return<uint64_t> id = mDevice->setNotify(mClientCallback);
+        if (!id.isOk() || id == 0) {
+            ALOGE("Failed to open Fingerprint HAL");
+            mReconnect = true;
+            return;
+        }
+    }
+    connect();
+}
+
+bool Session::isClosed() {
+    return mClosed;
+}
+
+binder_status_t Session::linkToDeath(AIBinder* binder) {
+    return AIBinder_linkToDeath(binder, mDeathRecipient, this);
+}
+
+void Session::setState(State state) {
+    std::lock_guard<std::mutex> lock(mStateMutex);
+    mState = state;
+}
+
+// Report a failed start of an operation unless the stock service already ended it.
+void Session::failOperation() {
+    std::lock_guard<std::mutex> lock(mStateMutex);
+    if (mState == State::IDLE) return;
+    mState = State::IDLE;
+    mCb->onError(Error::UNABLE_TO_PROCESS, 0 /* vendorCode */);
 }
 
 ndk::ScopedAStatus Session::generateChallenge() {
-    uint64_t challenge = mDevice->pre_enroll(mDevice);
-    ALOGI("generateChallenge: %ld", challenge);
+    reconnectIfNeeded();
+    uint64_t challenge;
+    {
+        HealthMonitor::Scope watch(mHealth, "preEnroll");
+        challenge = mDevice->preEnroll();
+    }
     mCb->onChallengeGenerated(challenge);
-
     return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus Session::revokeChallenge(int64_t challenge) {
-    ALOGI("revokeChallenge: %ld", challenge);
-    mDevice->post_enroll(mDevice);
+    {
+        HealthMonitor::Scope watch(mHealth, "postEnroll");
+        mDevice->postEnroll();
+    }
     mCb->onChallengeRevoked(challenge);
-
     return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus Session::enroll(const HardwareAuthToken& hat,
                                    std::shared_ptr<ICancellationSignal>* out) {
-    hw_auth_token_t authToken;
-    translate(hat, authToken);
-    int error = mDevice->enroll(mDevice, &authToken, mUserId, 60);
-    if (error) {
-        ALOGE("enroll failed: %d", error);
-        mCb->onError(Error::UNABLE_TO_PROCESS, error);
+    hw_auth_token_t authToken = toHwAuthToken(hat);
+    ::android::hardware::hidl_array<uint8_t, sizeof(hw_auth_token_t)> hidlHat;
+    memcpy(hidlHat.data(), &authToken, sizeof(authToken));
+
+    reconnectIfNeeded();
+    setState(State::ENROLLING);
+    Return<OppoRequestStatus> ret = [&] {
+        HealthMonitor::Scope watch(mHealth, "enroll");
+        return mDevice->enroll(hidlHat, mUserId, kEnrollTimeoutSec);
+    }();
+    if (!isOk(ret)) {
+        ALOGE("enroll failed");
+        failOperation();
     }
 
-    *out = SharedRefBase::make<CancellationSignal>(this);
+    *out = ndk::SharedRefBase::make<CancellationSignal>(ref<Session>());
     return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus Session::authenticate(int64_t operationId,
                                          std::shared_ptr<ICancellationSignal>* out) {
-    checkSensorLockout();
-    int error = mDevice->authenticate(mDevice, operationId, mUserId);
-    if (error) {
-        ALOGE("authenticate failed: %d", error);
-        mCb->onError(Error::UNABLE_TO_PROCESS, error);
+    *out = ndk::SharedRefBase::make<CancellationSignal>(ref<Session>());
+    if (checkSensorLockout()) {
+        return ndk::ScopedAStatus::ok();
     }
 
-    *out = SharedRefBase::make<CancellationSignal>(this);
+    // egis_hidl::authenticate() is an empty stub in the stock service, only
+    // authenticateAsType() reaches the sensor (on FPC as well).
+    reconnectIfNeeded();
+    setState(State::AUTHENTICATING);
+    Return<OppoRequestStatus> ret = [&] {
+        HealthMonitor::Scope watch(mHealth, "authenticate");
+        return mDevice->authenticateAsType(operationId, mUserId, mAuthType);
+    }();
+    if (!isOk(ret)) {
+        ALOGE("authenticate failed");
+        failOperation();
+    }
+
     return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus Session::detectInteraction(std::shared_ptr<ICancellationSignal>* out) {
-    ALOGD("Detect interaction is not supported");
+    // supportsDetectInteraction is false, the framework doesn't call this.
     mCb->onError(Error::UNABLE_TO_PROCESS, 0 /* vendorCode */);
-
-    *out = SharedRefBase::make<CancellationSignal>(this);
+    *out = ndk::SharedRefBase::make<CancellationSignal>(ref<Session>());
     return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus Session::enumerateEnrollments() {
-    int error = mDevice->enumerate(mDevice);
-    if (error) {
-        ALOGE("enumerate failed: %d", error);
+    std::vector<int32_t> enrollments;
+    {
+        std::lock_guard<std::mutex> lock(mTemplatesMutex);
+        enrollments.assign(mTemplates.begin(), mTemplates.end());
     }
-
+    mCb->onEnrollmentsEnumerated(enrollments);
     return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus Session::removeEnrollments(const std::vector<int32_t>& enrollmentIds) {
-    ALOGI("removeEnrollments, size: %zu", enrollmentIds.size());
+    if (enrollmentIds.empty()) {
+        mCb->onEnrollmentsRemoved({});
+        return ndk::ScopedAStatus::ok();
+    }
 
+    {
+        std::lock_guard<std::mutex> lock(mRemoveMutex);
+        mPendingRemovals = std::set<int32_t>(enrollmentIds.begin(), enrollmentIds.end());
+        mRemoved.clear();
+    }
+
+    reconnectIfNeeded();
+    bool failed = false;
     for (int32_t fid : enrollmentIds) {
-        int error = mDevice->remove(mDevice, mUserId, fid);
-        if (error) {
-            ALOGE("remove failed: %d", error);
+        // fid 0 removes every template of the group on Egis, never pass it through.
+        if (fid != 0) {
+            HealthMonitor::Scope watch(mHealth, "remove");
+            if (isOk(mDevice->remove(mUserId, fid))) continue;
+        }
+
+        ALOGE("remove(%d) failed", fid);
+        failed = true;
+        std::lock_guard<std::mutex> lock(mRemoveMutex);
+        mPendingRemovals.erase(fid);
+    }
+
+    if (failed) {
+        std::lock_guard<std::mutex> lock(mRemoveMutex);
+        if (mPendingRemovals.empty()) {
+            if (!mRemoved.empty()) {
+                mCb->onEnrollmentsRemoved(mRemoved);
+                mRemoved.clear();
+            }
+            mCb->onError(Error::UNABLE_TO_REMOVE, 0 /* vendorCode */);
         }
     }
+
     return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus Session::getAuthenticatorId() {
-    uint64_t auth_id = mDevice->get_authenticator_id(mDevice);
-    ALOGI("getAuthenticatorId: %ld", auth_id);
-    mCb->onAuthenticatorIdRetrieved(auth_id);
+    reconnectIfNeeded();
+    uint64_t id;
+    {
+        HealthMonitor::Scope watch(mHealth, "getAuthenticatorId");
+        id = mDevice->getAuthenticatorId();
+    }
+    mCb->onAuthenticatorIdRetrieved(id);
     return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus Session::invalidateAuthenticatorId() {
-    uint64_t auth_id = mDevice->get_authenticator_id(mDevice);
-    ALOGI("invalidateAuthenticatorId: %ld", auth_id);
-    mCb->onAuthenticatorIdInvalidated(auth_id);
+    // The stock service has no way to rotate it.
+    uint64_t id;
+    {
+        HealthMonitor::Scope watch(mHealth, "getAuthenticatorId");
+        id = mDevice->getAuthenticatorId();
+    }
+    mCb->onAuthenticatorIdInvalidated(id);
     return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus Session::resetLockout(const HardwareAuthToken& /*hat*/) {
     clearLockout(true);
+    std::lock_guard<std::mutex> lock(mLockoutTimerMutex);
     if (mIsLockoutTimerStarted) mIsLockoutTimerAborted = true;
-
     return ndk::ScopedAStatus::ok();
-}
-
-ndk::ScopedAStatus Session::onPointerDown(int32_t /*pointerId*/, int32_t /*x*/, int32_t /*y*/,
-                                          float /*minor*/, float /*major*/) {
-    // Not implemented
-    return ndk::ScopedAStatus::ok();
-}
-
-ndk::ScopedAStatus Session::onPointerUp(int32_t /*pointerId*/) {
-    // Not implemented
-    return ndk::ScopedAStatus::ok();
-}
-
-ndk::ScopedAStatus Session::onUiReady() {
-    // TODO: stub
-
-    return ndk::ScopedAStatus::ok();
-}
-
-ndk::ScopedAStatus Session::authenticateWithContext(
-        int64_t operationId, const common::OperationContext& /*context*/,
-        std::shared_ptr<common::ICancellationSignal>* out) {
-    return authenticate(operationId, out);
-}
-
-ndk::ScopedAStatus Session::enrollWithContext(const keymaster::HardwareAuthToken& hat,
-                                              const common::OperationContext& /*context*/,
-                                              std::shared_ptr<common::ICancellationSignal>* out) {
-    return enroll(hat, out);
-}
-
-ndk::ScopedAStatus Session::detectInteractionWithContext(
-        const common::OperationContext& /*context*/,
-        std::shared_ptr<common::ICancellationSignal>* out) {
-    return detectInteraction(out);
-}
-
-ndk::ScopedAStatus Session::onPointerDownWithContext(const PointerContext& context) {
-    return onPointerDown(context.pointerId, context.x, context.y, context.minor, context.major);
-}
-
-ndk::ScopedAStatus Session::onPointerUpWithContext(const PointerContext& context) {
-    return onPointerUp(context.pointerId);
-}
-
-ndk::ScopedAStatus Session::onContextChanged(const common::OperationContext& /*context*/) {
-    return ndk::ScopedAStatus::ok();
-}
-
-ndk::ScopedAStatus Session::onPointerCancelWithContext(const PointerContext& /*context*/) {
-    return ndk::ScopedAStatus::ok();
-}
-
-ndk::ScopedAStatus Session::setIgnoreDisplayTouches(bool /*shouldIgnore*/) {
-    return ndk::ScopedAStatus::ok();
-}
-
-ndk::ScopedAStatus Session::cancel() {
-    int ret = mDevice->cancel(mDevice);
-
-    if (ret == 0) {
-        mCb->onError(Error::CANCELED, 0 /* vendorCode */);
-        return ndk::ScopedAStatus::ok();
-    }
-
-    return ndk::ScopedAStatus::fromServiceSpecificError(ret);
 }
 
 ndk::ScopedAStatus Session::close() {
@@ -196,92 +315,81 @@ ndk::ScopedAStatus Session::close() {
     return ndk::ScopedAStatus::ok();
 }
 
-binder_status_t Session::linkToDeath(AIBinder* binder) {
-    return AIBinder_linkToDeath(binder, mDeathRecipient, this);
+ndk::ScopedAStatus Session::authenticateWithContext(int64_t operationId,
+                                                    const OperationContext& context,
+                                                    std::shared_ptr<ICancellationSignal>* out) {
+    setScreenState(context);
+    // Stock FingerprintAuthClient: TYPE_KEYGUARD for keyguard, TYPE_OTHER otherwise
+    // (TYPE_PAY is for OPPO's fingerprint pay, which doesn't exist here).
+    mAuthType = context.reason == common::OperationReason::KEYGUARD
+                        ? OppoAuthType::TYPE_KEYGUARD
+                        : OppoAuthType::TYPE_OTHER;
+    return authenticate(operationId, out);
 }
 
-bool Session::isClosed() {
-    return mClosed;
+ndk::ScopedAStatus Session::enrollWithContext(const HardwareAuthToken& hat,
+                                              const OperationContext& context,
+                                              std::shared_ptr<ICancellationSignal>* out) {
+    setScreenState(context);
+    return enroll(hat, out);
 }
 
-// Translate from errors returned by traditional HAL (see fingerprint.h) to
-// AIDL-compliant Error
-Error Session::VendorErrorFilter(int32_t error, int32_t* vendorCode) {
-    *vendorCode = 0;
+ndk::ScopedAStatus Session::detectInteractionWithContext(
+        const OperationContext& /*context*/, std::shared_ptr<ICancellationSignal>* out) {
+    return detectInteraction(out);
+}
 
-    switch (error) {
-        case FINGERPRINT_ERROR_HW_UNAVAILABLE:
-            return Error::HW_UNAVAILABLE;
-        case FINGERPRINT_ERROR_UNABLE_TO_PROCESS:
-            return Error::UNABLE_TO_PROCESS;
-        case FINGERPRINT_ERROR_TIMEOUT:
-            return Error::TIMEOUT;
-        case FINGERPRINT_ERROR_NO_SPACE:
-            return Error::NO_SPACE;
-        case FINGERPRINT_ERROR_CANCELED:
-            return Error::CANCELED;
-        case FINGERPRINT_ERROR_UNABLE_TO_REMOVE:
-            return Error::UNABLE_TO_REMOVE;
-        case FINGERPRINT_ERROR_LOCKOUT: {
-            *vendorCode = FINGERPRINT_ERROR_LOCKOUT;
-            return Error::VENDOR;
-        }
-        default:
-            if (error >= FINGERPRINT_ERROR_VENDOR_BASE) {
-                // vendor specific code.
-                *vendorCode = error - FINGERPRINT_ERROR_VENDOR_BASE;
-                return Error::VENDOR;
-            }
+ndk::ScopedAStatus Session::onContextChanged(const OperationContext& context) {
+    setScreenState(context);
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus Session::cancel() {
+    Return<OppoRequestStatus> ret = [&] {
+        HealthMonitor::Scope watch(mHealth, "cancel");
+        return mDevice->cancel();
+    }();
+    if (!isOk(ret)) {
+        return ndk::ScopedAStatus::fromServiceSpecificError(
+                ret.isOk() ? static_cast<int32_t>(static_cast<OppoRequestStatus>(ret))
+                           : static_cast<int32_t>(OppoRequestStatus::SYS_UNKNOWN));
     }
-    ALOGE("Unknown error from fingerprint vendor library: %d", error);
-    return Error::UNABLE_TO_PROCESS;
+
+    // Neither fingerprint_cancel() (Egis) nor fpc_cancel() (FPC) report ERROR_CANCELED.
+    setState(State::IDLE);
+    mCb->onError(Error::CANCELED, 0 /* vendorCode */);
+    return ndk::ScopedAStatus::ok();
 }
 
-// Translate acquired messages returned by traditional HAL (see fingerprint.h)
-// to AIDL-compliant AcquiredInfo
-AcquiredInfo Session::VendorAcquiredFilter(int32_t info, int32_t* vendorCode) {
-    *vendorCode = 0;
-
-    switch (info) {
-        case FINGERPRINT_ACQUIRED_GOOD:
-            return AcquiredInfo::GOOD;
-        case FINGERPRINT_ACQUIRED_PARTIAL:
-            return AcquiredInfo::PARTIAL;
-        case FINGERPRINT_ACQUIRED_INSUFFICIENT:
-            return AcquiredInfo::INSUFFICIENT;
-        case FINGERPRINT_ACQUIRED_IMAGER_DIRTY:
-            return AcquiredInfo::SENSOR_DIRTY;
-        case FINGERPRINT_ACQUIRED_TOO_SLOW:
-            return AcquiredInfo::TOO_SLOW;
-        case FINGERPRINT_ACQUIRED_TOO_FAST:
-            return AcquiredInfo::TOO_FAST;
-        default:
-            if (info >= FINGERPRINT_ACQUIRED_VENDOR_BASE) {
-                // vendor specific code.
-                *vendorCode = info - FINGERPRINT_ACQUIRED_VENDOR_BASE;
-                return AcquiredInfo::VENDOR;
-            }
-    }
-    ALOGE("Unknown acquired message from fingerprint vendor library: %d", info);
-    return AcquiredInfo::UNKNOWN;
+// Egis only counts a bad quality image while verifying as a failed attempt with the screen
+// on, with the screen off (finger in pocket) it's dropped silently.
+void Session::setScreenState(const OperationContext& context) {
+    bool screenOff = context.isAod || context.displayState == common::DisplayState::NO_UI ||
+                     context.displayState == common::DisplayState::AOD;
+    HealthMonitor::Scope watch(mHealth, "setScreenState");
+    mDevice->setScreenState(screenOff ? OppoScreenState::FINGERPRINT_SCREEN_OFF
+                                      : OppoScreenState::FINGERPRINT_SCREEN_ON);
 }
 
 bool Session::checkSensorLockout() {
-    LockoutTracker::LockoutMode lockoutMode = mLockoutTracker.getMode();
-    if (lockoutMode == LockoutTracker::LockoutMode::kPermanent) {
-        ALOGE("Fail: lockout permanent");
-        mCb->onLockoutPermanent();
-        mIsLockoutTimerAborted = true;
-        return true;
+    switch (mLockoutTracker.getMode()) {
+        case LockoutTracker::LockoutMode::kPermanent: {
+            ALOGE("Fail: lockout permanent");
+            mCb->onLockoutPermanent();
+            std::lock_guard<std::mutex> lock(mLockoutTimerMutex);
+            mIsLockoutTimerAborted = true;
+            return true;
+        }
+        case LockoutTracker::LockoutMode::kTimed: {
+            int64_t timeLeft = mLockoutTracker.getLockoutTimeLeft();
+            ALOGE("Fail: lockout timed: %" PRId64, timeLeft);
+            mCb->onLockoutTimed(timeLeft);
+            startLockoutTimer(timeLeft);
+            return true;
+        }
+        default:
+            return false;
     }
-    if (lockoutMode == LockoutTracker::LockoutMode::kTimed) {
-        int64_t timeLeft = mLockoutTracker.getLockoutTimeLeft();
-        ALOGE("Fail: lockout timed: %ld", timeLeft);
-        mCb->onLockoutTimed(timeLeft);
-        if (!mIsLockoutTimerStarted) startLockoutTimer(timeLeft);
-        return true;
-    }
-    return false;
 }
 
 void Session::clearLockout(bool clearAttemptCounter) {
@@ -290,77 +398,197 @@ void Session::clearLockout(bool clearAttemptCounter) {
 }
 
 void Session::startLockoutTimer(int64_t timeout) {
-    std::function<void()> action = std::bind(&Session::lockoutTimerExpired, this);
-    std::thread([timeout, action]() {
+    {
+        std::lock_guard<std::mutex> lock(mLockoutTimerMutex);
+        if (mIsLockoutTimerStarted) return;
+        mIsLockoutTimerStarted = true;
+    }
+
+    auto self = ref<Session>();
+    std::thread([self, timeout]() {
         std::this_thread::sleep_for(std::chrono::milliseconds(timeout));
-        action();
+        bool aborted;
+        {
+            std::lock_guard<std::mutex> lock(self->mLockoutTimerMutex);
+            aborted = self->mIsLockoutTimerAborted;
+            self->mIsLockoutTimerStarted = false;
+            self->mIsLockoutTimerAborted = false;
+        }
+        if (!aborted) self->clearLockout(false);
     }).detach();
-
-    mIsLockoutTimerStarted = true;
 }
 
-void Session::lockoutTimerExpired() {
-    if (!mIsLockoutTimerAborted) clearLockout(false);
+void Session::onEnrollResult(uint32_t fingerId, uint32_t remaining) {
+    // Already reported as ACQUIRED_ALREADY_ENROLLED, the enrollment continues.
+    if (remaining == kFpcRemainingAlreadyEnrolled) return;
 
-    mIsLockoutTimerStarted = false;
-    mIsLockoutTimerAborted = false;
+    if (remaining == 0) {
+        setState(State::IDLE);
+        std::lock_guard<std::mutex> lock(mTemplatesMutex);
+        mTemplates.insert(fingerId);
+        saveTemplatesLocked();
+    }
+    mCb->onEnrollmentProgress(fingerId, remaining);
 }
 
-void Session::notify(const fingerprint_msg_t* msg) {
-    // const uint64_t devId = reinterpret_cast<uint64_t>(mDevice);
-    switch (msg->type) {
-        case FINGERPRINT_ERROR: {
-            int32_t vendorCode = 0;
-            Error result = VendorErrorFilter(msg->data.error, &vendorCode);
-            ALOGD("onError(%hhd, %d)", result, vendorCode);
-            mCb->onError(result, vendorCode);
-        } break;
-        case FINGERPRINT_ACQUIRED: {
-            int32_t vendorCode = 0;
-            AcquiredInfo result =
-                    VendorAcquiredFilter(msg->data.acquired.acquired_info, &vendorCode);
-            ALOGD("onAcquired(%hhd, %d)", result, vendorCode);
-            mCb->onAcquired(result, vendorCode);
-        } break;
-        case FINGERPRINT_TEMPLATE_ENROLLING: {
-            ALOGD("onEnrollResult(fid=%d, gid=%d, rem=%d)", msg->data.enroll.finger.fid,
-                  msg->data.enroll.finger.gid, msg->data.enroll.samples_remaining);
-            mCb->onEnrollmentProgress(msg->data.enroll.finger.fid,
-                                      msg->data.enroll.samples_remaining);
-        } break;
-        case FINGERPRINT_TEMPLATE_REMOVED: {
-            ALOGD("onRemove(fid=%d, gid=%d, rem=%d)", msg->data.removed.finger.fid,
-                  msg->data.removed.finger.gid, msg->data.removed.remaining_templates);
-            std::vector<int> enrollments;
-            enrollments.push_back(msg->data.removed.finger.fid);
-            mCb->onEnrollmentsRemoved(enrollments);
-        } break;
-        case FINGERPRINT_AUTHENTICATED: {
-            ALOGD("onAuthenticated(fid=%d, gid=%d)", msg->data.authenticated.finger.fid,
-                  msg->data.authenticated.finger.gid);
-            if (msg->data.authenticated.finger.fid != 0) {
-                const hw_auth_token_t hat = msg->data.authenticated.hat;
-                HardwareAuthToken authToken;
-                translate(hat, authToken);
+// Stock passes raw codes with vendorCode 0, including ACQUIRED_TOO_SIMILAR (1001) and
+// ACQUIRED_ALREADY_ENROLLED (1002) -> VENDOR 1 and 2, see fingerprint_acquired_vendor.
+void Session::onAcquired(OppoAcquiredInfo acquiredInfo, int32_t vendorCode) {
+    const int32_t info = static_cast<int32_t>(acquiredInfo);
+    const int32_t vendorBase = static_cast<int32_t>(OppoAcquiredInfo::ACQUIRED_VENDOR_BASE);
+    AcquiredInfo result;
 
-                mCb->onAuthenticationSucceeded(msg->data.authenticated.finger.fid, authToken);
-                mLockoutTracker.reset(true);
-            } else {
-                mCb->onAuthenticationFailed();
-                mLockoutTracker.addFailedAttempt();
-                checkSensorLockout();
-            }
-        } break;
-        case FINGERPRINT_TEMPLATE_ENUMERATING: {
-            ALOGD("onEnumerate(fid=%d, gid=%d, rem=%d)", msg->data.enumerated.finger.fid,
-                  msg->data.enumerated.finger.gid, msg->data.enumerated.remaining_templates);
-            static std::vector<int> enrollments;
-            enrollments.push_back(msg->data.enumerated.finger.fid);
-            if (msg->data.enumerated.remaining_templates == 0) {
-                mCb->onEnrollmentsEnumerated(enrollments);
-                enrollments.clear();
-            }
-        } break;
+    if (info >= vendorBase) {
+        result = AcquiredInfo::VENDOR;
+        vendorCode = info - vendorBase;
+    } else {
+        switch (acquiredInfo) {
+            case OppoAcquiredInfo::ACQUIRED_GOOD:
+                result = AcquiredInfo::GOOD;
+                break;
+            case OppoAcquiredInfo::ACQUIRED_PARTIAL:
+                result = AcquiredInfo::PARTIAL;
+                break;
+            case OppoAcquiredInfo::ACQUIRED_INSUFFICIENT:
+                result = AcquiredInfo::INSUFFICIENT;
+                break;
+            case OppoAcquiredInfo::ACQUIRED_IMAGER_DIRTY:
+                result = AcquiredInfo::SENSOR_DIRTY;
+                break;
+            case OppoAcquiredInfo::ACQUIRED_TOO_SLOW:
+                result = AcquiredInfo::TOO_SLOW;
+                break;
+            case OppoAcquiredInfo::ACQUIRED_TOO_FAST:
+                result = AcquiredInfo::TOO_FAST;
+                break;
+            case OppoAcquiredInfo::ACQUIRED_VENDOR:
+                result = AcquiredInfo::VENDOR;
+                break;
+            default:
+                ALOGE("Unknown acquired info: %d", info);
+                result = AcquiredInfo::UNKNOWN;
+                break;
+        }
+    }
+
+    mCb->onAcquired(result, vendorCode);
+}
+
+void Session::onAuthenticated(uint32_t fingerId, const hidl_vec<uint8_t>& token) {
+    {
+        std::lock_guard<std::mutex> lock(mStateMutex);
+        // Late result of an identify the framework already ended.
+        if (mState != State::AUTHENTICATING) return;
+    }
+
+    if (fingerId == 0 || token.size() != sizeof(hw_auth_token_t)) {
+        mCb->onAuthenticationFailed();
+        mLockoutTracker.addFailedAttempt();
+        if (checkSensorLockout()) {
+            // The stock service keeps identifying until cancelled, which the
+            // stock framework did on lockout.
+            setState(State::IDLE);
+            HealthMonitor::Scope watch(mHealth, "cancel");
+            mDevice->cancel();
+        }
+        return;
+    }
+
+    hw_auth_token_t hat;
+    memcpy(&hat, token.data(), sizeof(hat));
+    setState(State::IDLE);
+    mCb->onAuthenticationSucceeded(fingerId, toHardwareAuthToken(hat));
+    mLockoutTracker.reset(true);
+}
+
+// The stock service already folds raw codes into ERROR_VENDOR + vendorCode
+// (Egis: code - 8, FPC: code - 1000).
+void Session::onError(OppoError error, int32_t vendorCode) {
+    Error result;
+    switch (error) {
+        case OppoError::ERROR_NO_ERROR:
+            return;
+        case OppoError::ERROR_HW_UNAVAILABLE:
+            result = Error::HW_UNAVAILABLE;
+            mReconnect = true;
+            break;
+        case OppoError::ERROR_UNABLE_TO_PROCESS:
+            result = Error::UNABLE_TO_PROCESS;
+            break;
+        case OppoError::ERROR_TIMEOUT:
+            result = Error::TIMEOUT;
+            break;
+        case OppoError::ERROR_NO_SPACE:
+            result = Error::NO_SPACE;
+            break;
+        case OppoError::ERROR_CANCELED:
+            result = Error::CANCELED;
+            break;
+        case OppoError::ERROR_UNABLE_TO_REMOVE:
+            result = Error::UNABLE_TO_REMOVE;
+            break;
+        case OppoError::ERROR_VENDOR:
+            result = Error::VENDOR;
+            break;
+        default:
+            ALOGE("Unknown error: %d", static_cast<int32_t>(error));
+            result = Error::UNABLE_TO_PROCESS;
+            vendorCode = 0;
+            break;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(mStateMutex);
+        if (result == Error::CANCELED && mState == State::IDLE) {
+            return;  // already reported by cancel()
+        }
+        if (result != Error::VENDOR) mState = State::IDLE;
+    }
+
+    mCb->onError(result, vendorCode);
+}
+
+void Session::onRemoved(uint32_t fingerId) {
+    {
+        std::lock_guard<std::mutex> lock(mTemplatesMutex);
+        mTemplates.erase(fingerId);
+        saveTemplatesLocked();
+    }
+
+    std::lock_guard<std::mutex> lock(mRemoveMutex);
+    if (mPendingRemovals.erase(fingerId) == 0) return;
+    mRemoved.push_back(fingerId);
+    if (mPendingRemovals.empty()) {
+        mCb->onEnrollmentsRemoved(mRemoved);
+        mRemoved.clear();
+    }
+}
+
+void Session::onSyncTemplates(const hidl_vec<uint32_t>& fingerIds) {
+    {
+        std::lock_guard<std::mutex> lock(mTemplatesMutex);
+        mTemplates.clear();
+        for (uint32_t fid : fingerIds) {
+            if (fid != 0) mTemplates.insert(fid);
+        }
+        saveTemplatesLocked();
+    }
+}
+
+void Session::saveTemplatesLocked() {
+    if (mTemplatesFile.empty()) return;
+
+    std::string tmp = mTemplatesFile + ".tmp";
+    {
+        std::ofstream out(tmp, std::ios::trunc);
+        for (uint32_t fid : mTemplates) out << fid << "\n";
+        if (!out.good()) {
+            ALOGE("Failed to write %s", tmp.c_str());
+            return;
+        }
+    }
+    if (rename(tmp.c_str(), mTemplatesFile.c_str()) != 0) {
+        ALOGE("Failed to rename %s: %s", tmp.c_str(), strerror(errno));
     }
 }
 

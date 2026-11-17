@@ -366,11 +366,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <fqname>@1.0::ISensorsCalibrate/default</fqname>
     </hal>
     <hal format="hidl">
-        <name>vendor.egistec.hardware.fingerprint</name>
-        <transport>hwbinder</transport>
-        <fqname>@4.0::IBiometricsFingerprintRbs/default</fqname>
-    </hal>
-    <hal format="hidl">
         <name>vendor.qti.hardware.vpp</name>
         <transport>hwbinder</transport>
         <fqname>@1.3::IHidlVppService/vppService</fqname>

@@ -45,6 +45,6 @@ interface IBiometricsFingerprintClientCallback {
 
     oneway onEngineeringInfoUpdated(uint32_t length, vec<uint32_t> keys, vec<string> values);
 
-    oneway onFingerprintCmd(int32_t deviceId, vec<uint32_t> groupId, uint32_t remaining);
+    oneway onFingerprintCmd(int32_t cmdId, vec<int8_t> result, uint32_t resultLen);
 
 };

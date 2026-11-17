@@ -5,30 +5,42 @@
  */
 
 #pragma once
-#define LOG_TAG "android.hardware.biometrics.fingerprint-service.r5x"
 
+#include <aidl/android/hardware/biometrics/common/BnCancellationSignal.h>
 #include <aidl/android/hardware/biometrics/fingerprint/BnSession.h>
 #include <aidl/android/hardware/biometrics/fingerprint/ISessionCallback.h>
-#include <android/log.h>
-#include <hardware/fingerprint.h>
-#include <hardware/hardware.h>
 #include <log/log.h>
 
-#include "LockoutTracker.h"
+#include <atomic>
+#include <mutex>
+#include <set>
+#include <string>
+#include <vector>
 
-using ::aidl::android::hardware::biometrics::common::ICancellationSignal;
-using ::aidl::android::hardware::biometrics::common::OperationContext;
-using ::aidl::android::hardware::biometrics::fingerprint::PointerContext;
-using ::aidl::android::hardware::keymaster::HardwareAuthToken;
+#include "HealthMonitor.h"
+#include "LockoutTracker.h"
+#include "OppoFingerprint.h"
 
 namespace aidl::android::hardware::biometrics::fingerprint {
 
-void onClientDeath(void* cookie);
+using ::aidl::android::hardware::biometrics::common::BnCancellationSignal;
+using ::aidl::android::hardware::biometrics::common::ICancellationSignal;
+using ::aidl::android::hardware::biometrics::common::OperationContext;
+using ::aidl::android::hardware::keymaster::HardwareAuthToken;
 
 class Session : public BnSession {
   public:
-    Session(fingerprint_device_t* device, int userId, std::shared_ptr<ISessionCallback> cb,
-            LockoutTracker lockoutTracker);
+    Session(sp<IOppoBiometricsFingerprint> device, sp<OppoClientCallback> clientCallback,
+            HealthMonitor& health, int32_t userId, std::shared_ptr<ISessionCallback> cb,
+            LockoutTracker& lockoutTracker);
+
+    // Selects the user's template group, callbacks must already be routed to this session.
+    void init();
+    bool isClosed();
+    binder_status_t linkToDeath(AIBinder* binder);
+    ndk::ScopedAStatus cancel();
+
+    // ISession
     ndk::ScopedAStatus generateChallenge() override;
     ndk::ScopedAStatus revokeChallenge(int64_t challenge) override;
     ndk::ScopedAStatus enroll(const HardwareAuthToken& hat,
@@ -42,10 +54,6 @@ class Session : public BnSession {
     ndk::ScopedAStatus invalidateAuthenticatorId() override;
     ndk::ScopedAStatus resetLockout(const HardwareAuthToken& hat) override;
     ndk::ScopedAStatus close() override;
-    ndk::ScopedAStatus onPointerDown(int32_t pointerId, int32_t x, int32_t y, float minor,
-                                     float major) override;
-    ndk::ScopedAStatus onPointerUp(int32_t pointerId) override;
-    ndk::ScopedAStatus onUiReady() override;
     ndk::ScopedAStatus authenticateWithContext(int64_t operationId, const OperationContext& context,
                                                std::shared_ptr<ICancellationSignal>* out) override;
     ndk::ScopedAStatus enrollWithContext(const HardwareAuthToken& hat,
@@ -53,45 +61,85 @@ class Session : public BnSession {
                                          std::shared_ptr<ICancellationSignal>* out) override;
     ndk::ScopedAStatus detectInteractionWithContext(
             const OperationContext& context, std::shared_ptr<ICancellationSignal>* out) override;
-    ndk::ScopedAStatus onPointerDownWithContext(const PointerContext& context) override;
-    ndk::ScopedAStatus onPointerUpWithContext(const PointerContext& context) override;
     ndk::ScopedAStatus onContextChanged(const OperationContext& context) override;
-    ndk::ScopedAStatus onPointerCancelWithContext(const PointerContext& context) override;
-    ndk::ScopedAStatus setIgnoreDisplayTouches(bool shouldIgnore) override;
 
-    ndk::ScopedAStatus cancel();
-    binder_status_t linkToDeath(AIBinder* binder);
-    bool isClosed();
-    void notify(const fingerprint_msg_t* msg);
+    // Under-display sensor only, r5x has a rear sensor.
+    ndk::ScopedAStatus onPointerDown(int32_t, int32_t, int32_t, float, float) override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ndk::ScopedAStatus onPointerUp(int32_t) override { return ndk::ScopedAStatus::ok(); }
+    ndk::ScopedAStatus onUiReady() override { return ndk::ScopedAStatus::ok(); }
+    ndk::ScopedAStatus onPointerDownWithContext(const PointerContext&) override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ndk::ScopedAStatus onPointerUpWithContext(const PointerContext&) override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ndk::ScopedAStatus onPointerCancelWithContext(const PointerContext&) override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ndk::ScopedAStatus setIgnoreDisplayTouches(bool) override { return ndk::ScopedAStatus::ok(); }
+
+    // Callbacks from the stock vendor.oppo service
+    void onEnrollResult(uint32_t fingerId, uint32_t remaining);
+    void onAcquired(OppoAcquiredInfo acquiredInfo, int32_t vendorCode);
+    void onAuthenticated(uint32_t fingerId, const hidl_vec<uint8_t>& token);
+    void onError(OppoError error, int32_t vendorCode);
+    void onRemoved(uint32_t fingerId);
+    void onSyncTemplates(const hidl_vec<uint32_t>& fingerIds);
 
   private:
-    fingerprint_device_t* mDevice;
-    LockoutTracker mLockoutTracker;
-    bool mClosed = false;
+    enum class State { IDLE, ENROLLING, AUTHENTICATING };
 
-    // static ndk::ScopedAStatus ErrorFilter(int32_t error);
-    static Error VendorErrorFilter(int32_t error, int32_t* vendorCode);
-    static AcquiredInfo VendorAcquiredFilter(int32_t info, int32_t* vendorCode);
-
+    void setState(State state);
+    void failOperation();
     bool checkSensorLockout();
     void clearLockout(bool clearAttemptCounter);
     void startLockoutTimer(int64_t timeout);
-    void lockoutTimerExpired();
+    void setScreenState(const OperationContext& context);
+    void saveTemplatesLocked();
+    void connect();
+    void reconnectIfNeeded();
 
-    // lockout timer
+    sp<IOppoBiometricsFingerprint> mDevice;
+    sp<OppoClientCallback> mClientCallback;
+    HealthMonitor& mHealth;
+    std::string mPath;
+    std::atomic<bool> mReconnect = false;
+    OppoAuthType mAuthType = OppoAuthType::TYPE_OTHER;
+    const int32_t mUserId;
+    std::shared_ptr<ISessionCallback> mCb;
+    LockoutTracker& mLockoutTracker;
+    AIBinder_DeathRecipient* mDeathRecipient;
+    bool mClosed = false;
+
+    std::mutex mLockoutTimerMutex;
     bool mIsLockoutTimerStarted = false;
     bool mIsLockoutTimerAborted = false;
 
-    // The user ID for which this session was created.
-    int32_t mUserId;
+    // Used to drop the stock service's late ERROR_CANCELED after we already reported one.
+    std::mutex mStateMutex;
+    State mState = State::IDLE;
 
-    // Callback for talking to the framework. This callback must only be called from non-binder
-    // threads to prevent nested binder calls and consequently a binder thread exhaustion.
-    // Practically, it means that this callback should always be called from the worker thread.
-    std::shared_ptr<ISessionCallback> mCb;
+    // Template list from onSyncTemplates (the stock service never sends onEnumerate),
+    // persisted in mTemplatesFile like the stock framework persisted its list.
+    std::string mTemplatesFile;
+    std::mutex mTemplatesMutex;
+    std::set<uint32_t> mTemplates;
 
-    // Binder death handler.
-    AIBinder_DeathRecipient* mDeathRecipient;
+    // Pending removeEnrollments()
+    std::mutex mRemoveMutex;
+    std::set<int32_t> mPendingRemovals;
+    std::vector<int32_t> mRemoved;
+};
+
+class CancellationSignal : public BnCancellationSignal {
+  public:
+    explicit CancellationSignal(std::shared_ptr<Session> session) : mSession(std::move(session)) {}
+    ndk::ScopedAStatus cancel() override { return mSession->cancel(); }
+
+  private:
+    std::shared_ptr<Session> mSession;
 };
 
 }  // namespace aidl::android::hardware::biometrics::fingerprint

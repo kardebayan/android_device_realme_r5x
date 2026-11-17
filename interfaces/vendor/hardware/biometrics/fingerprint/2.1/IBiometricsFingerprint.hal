@@ -40,7 +40,7 @@ interface IBiometricsFingerprint {
 
   authenticate(uint64_t operationId, uint32_t gid) generates (RequestStatus debugErrno);
 
-  authenticateAsType(uint64_t auth, uint32_t type, FingerprintAuthType AuthType) generates (RequestStatus debugErrno);
+  authenticateAsType(uint64_t operationId, uint32_t gid, FingerprintAuthType authType) generates (RequestStatus debugErrno);
 
   cleanUp() generates (RequestStatus debugErrno);
 
@@ -50,10 +50,10 @@ interface IBiometricsFingerprint {
 
   setTouchEventListener() generates (RequestStatus debugErrno);
 
-  setFingerKeymode() generates (RequestStatus debugErrno);
+  setFingerKeymode(uint32_t enable) generates (RequestStatus debugErrno);
 
-  dynamicallyConfigLog(uint32_t log) generates (RequestStatus debugErrno);
-  
+  dynamicallyConfigLog(uint32_t on) generates (RequestStatus debugErrno);
+
   pauseIdentify() generates (RequestStatus debugErrno);
 
   continueIdentify() generates (RequestStatus debugErrno);
@@ -62,12 +62,14 @@ interface IBiometricsFingerprint {
 
   getEnrollmentTotalTimes() generates (RequestStatus debugErrno);
 
+  setScreenState(FingerprintScreenState screen_state) generates (RequestStatus debugErrno);
+
   getEngineeringInfo(uint32_t info) generates (RequestStatus debugErrno);
 
-  touchUp() generates (RequestStatus debugErrno);
-  
   touchDown() generates (RequestStatus debugErrno);
 
-  sendFingerprintCmd(int32_t cmd, vec<int8_t> CmdId) generates (RequestStatus debugErrno);
+  touchUp() generates (RequestStatus debugErrno);
+
+  sendFingerprintCmd(int32_t cmdId, vec<int8_t> in_buf) generates (RequestStatus debugErrno);
 
 };
