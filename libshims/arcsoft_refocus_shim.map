@@ -1,0 +1,16 @@
+# The renamed allocator imports in libarcsoft_dualcam_refocus_left.so keep
+# their original @LIBC version requirement, so export them under LIBC.
+LIBC {
+  global:
+    r5xmlc;
+    r5xclc;
+    r5xrllc;
+    r5x_posix_mema;
+};
+
+R5X_SHIM {
+  global:
+    r5xMAlloc;
+  local:
+    *;
+};
