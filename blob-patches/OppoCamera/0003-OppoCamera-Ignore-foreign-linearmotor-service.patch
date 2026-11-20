@@ -1,0 +1,13 @@
+diff --git a/smali/com/oppo/camera/z.smali b/smali/com/oppo/camera/z.smali
+index 6221ffa..e8a481b 100644
+--- a/smali/com/oppo/camera/z.smali
++++ b/smali/com/oppo/camera/z.smali
+@@ -61,7 +61,7 @@
+ 
+     const-string v0, "linearmotor"
+ 
+-    invoke-virtual {p1, v0}, Landroid/app/Activity;->getSystemService(Ljava/lang/String;)Ljava/lang/Object;
++    invoke-static {p1, v0}, Lr5x/coloros/CameraClient;->getLinearmotorVibrator(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/Object;
+ 
+     move-result-object p1
+ 

@@ -1,0 +1,61 @@
+diff --git a/smali/com/oppo/camera/Camera.smali b/smali/com/oppo/camera/Camera.smali
+index cc4ce53..27955b2 100644
+--- a/smali/com/oppo/camera/Camera.smali
++++ b/smali/com/oppo/camera/Camera.smali
+@@ -5254,7 +5254,7 @@
+ 
+     const-string v4, "oppo_is_camera_recording"
+ 
+-    invoke-static {v3, v4, v0}, Landroid/provider/Settings$System;->putInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
++    invoke-static {v3, v4, v0}, Lr5x/coloros/CameraClient;->putSystemInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
+ 
+     .line 380
+     iget-boolean v3, p0, Lcom/oppo/camera/Camera;->y:Z
+@@ -5538,7 +5538,7 @@
+ 
+     const-string v2, "oppo_is_camera_recording"
+ 
+-    invoke-static {v0, v2, v3}, Landroid/provider/Settings$System;->putInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
++    invoke-static {v0, v2, v3}, Lr5x/coloros/CameraClient;->putSystemInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
+ 
+     .line 474
+     :cond_2
+diff --git a/smali/com/oppo/camera/d/m.smali b/smali/com/oppo/camera/d/m.smali
+index ae49709..e30f321 100644
+--- a/smali/com/oppo/camera/d/m.smali
++++ b/smali/com/oppo/camera/d/m.smali
+@@ -4002,7 +4002,7 @@
+ 
+     const-string v4, "oppo_is_camera_recording"
+ 
+-    invoke-static {v3, v4, v0}, Landroid/provider/Settings$System;->putInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
++    invoke-static {v3, v4, v0}, Lr5x/coloros/CameraClient;->putSystemInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
+ 
+     .line 1567
+     :cond_5
+diff --git a/smali/com/oppo/camera/e.smali b/smali/com/oppo/camera/e.smali
+index 6b60439..73f0045 100644
+--- a/smali/com/oppo/camera/e.smali
++++ b/smali/com/oppo/camera/e.smali
+@@ -2876,7 +2876,7 @@
+ 
+     move-result-object p1
+ 
+-    invoke-static {p1, v1, p2}, Landroid/provider/Settings$System;->putInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
++    invoke-static {p1, v1, p2}, Lr5x/coloros/CameraClient;->putSystemInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
+ 
+     goto :goto_0
+ 
+diff --git a/smali/com/oppo/camera/n/a$1.smali b/smali/com/oppo/camera/n/a$1.smali
+index 1472f66..9fa6146 100644
+--- a/smali/com/oppo/camera/n/a$1.smali
++++ b/smali/com/oppo/camera/n/a$1.smali
+@@ -94,7 +94,7 @@
+ 
+     move-result v2
+ 
+-    invoke-static {v0, v1, v2}, Landroid/provider/Settings$System;->putInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
++    invoke-static {v0, v1, v2}, Lr5x/coloros/CameraClient;->putSystemInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
+ 
+     return-void
+ .end method

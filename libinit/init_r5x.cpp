@@ -157,6 +157,8 @@ void setRMX(unsigned int variant)
         set_ro_product_prop(source, "model", prop[variant].device_build.c_str());
     }
 
+    property_override("ro.oppo.market.name", prop[variant].device_build.c_str());
+
     if (!prop[variant].sku.empty())
     {
         property_override("ro.boot.product.hardware.sku", prop[variant].sku.c_str());
@@ -168,6 +170,9 @@ void init_device_model()
     std::ifstream infile("/proc/oppoVersion/prjVersion");
     std::string prjVersion;
     getline(infile, prjVersion);
+
+    if (!prjVersion.empty())
+        property_override("ro.separate.soft", prjVersion.c_str());
 
     std::ifstream fin;
     std::string buf;

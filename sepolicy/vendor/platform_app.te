@@ -1,0 +1,10 @@
+hal_client_domain(platform_app, hal_oppoalgoprocessservice)
+allow platform_app oppo_hal_oppoalgoprocessservice:binder { call transfer };
+allow platform_app oppo_hal_oppoalgoprocessservice:fd use;
+allow platform_app hal_oppoalgoprocessservice_hwservice:process getattr;
+allow platform_app hal_oppoalgoprocessservice_hwservice:file { read write getattr open };
+allow platform_app hal_oppoalgoprocessservice_hwservice:dir { read search open };
+
+allow platform_app hal_camera_default:binder { call transfer };
+
+get_prop(platform_app, vendor_persist_camera_prop)

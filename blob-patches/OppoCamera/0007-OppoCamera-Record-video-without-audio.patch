@@ -1,0 +1,13 @@
+diff --git a/smali/com/oppo/camera/d/n.smali b/smali/com/oppo/camera/d/n.smali
+index c1aa59b..2d917bc 100644
+--- a/smali/com/oppo/camera/d/n.smali
++++ b/smali/com/oppo/camera/d/n.smali
+@@ -273,7 +273,7 @@
+     :cond_0
+     iget-object v0, p0, Lcom/oppo/camera/d/n;->c:Landroid/media/MediaRecorder;
+ 
+-    invoke-virtual {v0, p1}, Landroid/media/MediaRecorder;->setProfile(Landroid/media/CamcorderProfile;)V
++    invoke-static {v0, p1}, Lr5x/coloros/CameraClient;->setRecorderProfile(Landroid/media/MediaRecorder;Landroid/media/CamcorderProfile;)V
+ 
+     :goto_0
+     return-void

@@ -68,6 +68,14 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     android.hardware.camera.provider-service_32.lineage
 
+# OppoCamera
+PRODUCT_PACKAGES += \
+    coloros.support
+
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/configs/permissions/com.oppo.features.camera.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/com.oppo.features.camera.xml \
+    $(LOCAL_PATH)/configs/permissions/default-permissions-com.oppo.camera.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/default-permissions/default-permissions-com.oppo.camera.xml
+
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.camera.flash-autofocus.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.camera.flash-autofocus.xml \
     frameworks/native/data/etc/android.hardware.camera.front.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.camera.front.xml \

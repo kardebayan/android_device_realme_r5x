@@ -2,7 +2,7 @@
 vendor.qti.hardware.bt_channel_avoidance::IBTChannelAvoidance                              u:object_r:hal_bt_channel_avoidance_hwservice:s0
 
 # Camera
-vendor.oppo.hardware.camera.oppoAlgoProcessService::IOppoAlgoProcessService  u:object_r:hal_camera_hwservice:s0
+vendor.oppo.hardware.camera.oppoAlgoProcessService::IOppoAlgoProcessService  u:object_r:hal_oppoalgoprocessservice_hwservice:s0
 vendor.oppo.hardware.camera.oppopostproc::ICameraPostProc                    u:object_r:hal_camera_hwservice:s0
 
 # Fingerprint
@@ -10,7 +10,7 @@ vendor.oppo.hardware.biometrics.fingerprint::IBiometricsFingerprint          u:o
 android.frameworks.fingerprintservice::IFingerprintHalService                u:object_r:hal_fingerprint_hwservice:s0
 
 # Oppo
-vendor.oppo.hardware.hypnus::IHypnusUtil                        u:object_r:hal_oppo_hwservice:s0
+vendor.oppo.hardware.hypnus::IHypnusUtil                        u:object_r:hal_hypnus_hwservice:s0
 vendor.oppo.hardware.commondcs::ICommonDcsHalService            u:object_r:hal_oppo_hwservice:s0
 vendor.oppo.hardware.radio.opporadio::IOppoRadio                u:object_r:hal_oppo_hwservice:s0
 vendor.oppo.hardware.radio.oppoappradio::IOppoAppRadio          u:object_r:hal_oppo_hwservice:s0

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 The LineageOS Project
+    SPDX-License-Identifier: Apache-2.0
+-->
+<permissions>
+    <feature name="com.oppo.feature.screen.heteromorphism" />
+    <feature name="oppo.camera.fingerprint.shutter" />
+    <feature name="oppo.hw.manufacturer.qualcomm" />
+    <feature name="oppo.multimedia.record.conflict" />
+    <feature name="oppo.version.exp" />
+</permissions>

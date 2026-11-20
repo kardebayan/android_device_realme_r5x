@@ -4,3 +4,20 @@ ro.hardware.chipname           u:object_r:exported_default_prop:s0
 # Fling
 ro.max.fling_velocity                   u:object_r:exported_system_prop:s0
 ro.min.fling_velocity                   u:object_r:exported_system_prop:s0
+
+# OppoCamera
+oppo.camera.            u:object_r:exported_system_prop:s0
+persist.camera.         u:object_r:exported_system_prop:s0
+oppo.camera.packname    u:object_r:exported_system_prop:s0 exact string
+oppo.camera.pid         u:object_r:exported_system_prop:s0 exact int
+persist.sys.assert.panic        u:object_r:exported_system_prop:s0
+persist.sys.oppo.region         u:object_r:exported_system_prop:s0
+ro.build.release_type           u:object_r:exported_default_prop:s0
+ro.build.version.opporom        u:object_r:exported_default_prop:s0
+ro.build.version.ota            u:object_r:exported_default_prop:s0
+ro.oppo.market.enname           u:object_r:exported_system_prop:s0
+ro.oppo.market.name             u:object_r:exported_default_prop:s0
+ro.oppo.regionmark              u:object_r:exported_system_prop:s0
+ro.oppo.screenhole.positon      u:object_r:exported_system_prop:s0
+ro.oppo.version                 u:object_r:exported_default_prop:s0
+ro.separate.soft                u:object_r:exported_default_prop:s0

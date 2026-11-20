@@ -31,3 +31,4 @@ allow hal_fingerprint_default vendor_data_file:dir search;
 
 # Reset a hung vendor.oppo service like the stock framework's HealthMonitor did
 allow hal_fingerprint_default self:process signal;
+allow hal_fingerprint_default hal_hypnus_hwservice:hwservice_manager find;

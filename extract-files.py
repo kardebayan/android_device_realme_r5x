@@ -43,6 +43,8 @@ lib_fixups: lib_fixups_user_type = {
 }
 
 blob_fixups: blob_fixups_user_type = {
+    'system/app/OppoCamera/OppoCamera.apk': blob_fixup()
+        .apktool_patch('blob-patches/OppoCamera'),
     ('vendor/lib/libOPPORectify.so', 'vendor/lib/libarcsoft_beautyshot_lite_image.so', 'vendor/lib/libarcsoft_hdr_couple_api.so', 'vendor/lib/libarcsoft_high_dynamic_range_couple.so', 'vendor/lib/libarcsoft_picauto.so', 'vendor/lib/libblur_channel.so', 'vendor/lib/libthread_blur.so', 'vendor/lib/libdepthmap.so'): blob_fixup()
         .replace_needed('libstdc++.so', 'libstdc++_vendor.so'),
     'vendor/lib64/libwvhidl.so': blob_fixup()

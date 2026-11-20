@@ -1,0 +1,37 @@
+//
+// SPDX-FileCopyrightText: 2026 The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+java_library {
+    name: "coloros.support",
+    installable: true,
+    platform_apis: true,
+    srcs: ["java/**/*.java"],
+    required: [
+        "coloros.support.xml",
+        "libcoloros_support_jni",
+    ],
+}
+
+prebuilt_etc {
+    name: "coloros.support.xml",
+    src: "coloros.support.xml",
+    sub_dir: "permissions",
+}
+
+cc_library_shared {
+    name: "libcoloros_support_jni",
+    srcs: ["jni/CameraMetadataBuffer.cpp"],
+    shared_libs: [
+        "libcamera_client",
+        "libcamera_metadata",
+        "liblog",
+        "libnativehelper",
+    ],
+    header_libs: ["jni_headers"],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+}

@@ -1,0 +1,26 @@
+diff --git a/smali/com/oppo/camera/e/g$24.smali b/smali/com/oppo/camera/e/g$24.smali
+index 9758beb..7425a6a 100644
+--- a/smali/com/oppo/camera/e/g$24.smali
++++ b/smali/com/oppo/camera/e/g$24.smali
+@@ -202,7 +202,7 @@
+ 
+     move-result-object v0
+ 
+-    invoke-virtual {p3}, Landroid/hardware/camera2/TotalCaptureResult;->getKeys()Ljava/util/List;
++    invoke-static {p3}, Lr5x/coloros/CameraKeys;->getResultKeys(Landroid/hardware/camera2/CaptureResult;)Ljava/util/List;
+ 
+     move-result-object v1
+ 
+diff --git a/smali/com/oppo/camera/e/h.smali b/smali/com/oppo/camera/e/h.smali
+index c3bee94..8c3bce7 100644
+--- a/smali/com/oppo/camera/e/h.smali
++++ b/smali/com/oppo/camera/e/h.smali
+@@ -1298,7 +1298,7 @@
+     if-nez v0, :cond_0
+ 
+     .line 57
+-    invoke-virtual {p1}, Landroid/hardware/camera2/CaptureRequest;->getKeys()Ljava/util/List;
++    invoke-static {p1}, Lr5x/coloros/CameraKeys;->getRequestKeys(Landroid/hardware/camera2/CaptureRequest;)Ljava/util/List;
+ 
+     move-result-object p1
+ 

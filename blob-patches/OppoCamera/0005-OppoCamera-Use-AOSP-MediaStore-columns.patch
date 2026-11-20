@@ -1,0 +1,165 @@
+diff --git a/smali/com/oppo/camera/d/m.smali b/smali/com/oppo/camera/d/m.smali
+index e30f321..973f767 100644
+--- a/smali/com/oppo/camera/d/m.smali
++++ b/smali/com/oppo/camera/d/m.smali
+@@ -2848,7 +2848,6 @@
+ 
+     const-string v7, "tagflags"
+ 
+-    invoke-virtual {v2, v7, v6}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/Integer;)V
+ 
+     .line 1317
+     :try_start_0
+diff --git a/smali/com/oppo/camera/ui/control/e.smali b/smali/com/oppo/camera/ui/control/e.smali
+index e2c270b..1f8a46e 100644
+--- a/smali/com/oppo/camera/ui/control/e.smali
++++ b/smali/com/oppo/camera/ui/control/e.smali
+@@ -1124,7 +1124,7 @@
+ 
+     move-result v4
+ 
+-    const-string v5, " AND cshot_id != 1 "
++    const-string v5, " "
+ 
+     const-string v8, ")"
+ 
+@@ -1873,7 +1873,7 @@
+ 
+     const-string v13, "mime_type"
+ 
+-    const-string v14, "cshot_id"
++    const-string v14, "bucket_id"
+ 
+     .line 486
+     filled-new-array/range {v5 .. v14}, [Ljava/lang/String;
+@@ -1885,7 +1885,7 @@
+ 
+     invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
+ 
+-    const-string v6, " _id in (SELECT _id FROM images WHERE cshot_id > 1) AND (_data like \'"
++    const-string v6, " _data like \'%/Cshot/%\' AND (_data like \'"
+ 
+     invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+ 
+@@ -1947,11 +1947,11 @@
+ 
+     invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
+ 
+-    const-string v6, "( cshot_id="
++    const-string v6, "( bucket_id="
+ 
+     invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+ 
+-    const-string v6, "cshot_id"
++    const-string v6, "bucket_id"
+ 
+     invoke-interface {v15, v6}, Landroid/database/Cursor;->getColumnIndex(Ljava/lang/String;)I
+ 
+diff --git a/smali/com/oppo/camera/x.smali b/smali/com/oppo/camera/x.smali
+index 8cfa6c0..cc23a66 100644
+--- a/smali/com/oppo/camera/x.smali
++++ b/smali/com/oppo/camera/x.smali
+@@ -1006,7 +1006,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v10, v13, v2}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/Integer;)V
+ 
+     goto :goto_b
+ 
+@@ -1033,7 +1032,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v10, v13, v2}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/Integer;)V
+ 
+     goto :goto_b
+ 
+@@ -1059,7 +1057,6 @@
+ 
+     .line 361
+     :goto_a
+-    invoke-virtual {v10, v13, v2}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/String;)V
+ 
+     .line 364
+     :goto_b
+@@ -1078,7 +1075,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v10, v6, v2}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/Long;)V
+ 
+     goto :goto_c
+ 
+@@ -1088,7 +1084,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v10, v6, v2}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/Integer;)V
+ 
+     .line 370
+     :goto_c
+@@ -2921,7 +2916,6 @@
+     const-string v5, "tagflags"
+ 
+     .line 980
+-    invoke-virtual {v1, v5, v3}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/String;)V
+ 
+     .line 982
+     iget-wide v5, p0, Lcom/oppo/camera/x$a;->m:J
+@@ -2939,7 +2933,6 @@
+ 
+     move-result-object v3
+ 
+-    invoke-virtual {v1, v5, v3}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/Long;)V
+ 
+     goto :goto_5
+ 
+@@ -2951,7 +2944,6 @@
+ 
+     move-result-object v3
+ 
+-    invoke-virtual {v1, v5, v3}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/Integer;)V
+ 
+     .line 991
+     :goto_5
+@@ -4089,7 +4081,6 @@
+ 
+     move-result-object v0
+ 
+-    invoke-virtual {v14, v6, v0}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/Long;)V
+ 
+     goto :goto_7
+ 
+@@ -4101,7 +4092,6 @@
+ 
+     move-result-object v0
+ 
+-    invoke-virtual {v14, v6, v0}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/Integer;)V
+ 
+     .line 1162
+     :goto_7
+@@ -4124,7 +4114,6 @@
+ 
+     move-result-object v0
+ 
+-    invoke-virtual {v14, v6, v0}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/Integer;)V
+ 
+     goto :goto_9
+ 
+@@ -4143,7 +4132,6 @@
+     .line 1165
+     iget-object v0, v1, Lcom/oppo/camera/x$a;->z:Ljava/lang/String;
+ 
+-    invoke-virtual {v14, v6, v0}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/String;)V
+ 
+     goto :goto_9
+ 
+@@ -4169,7 +4157,6 @@
+ 
+     .line 1175
+     :goto_8
+-    invoke-virtual {v14, v6, v0}, Landroid/content/ContentValues;->put(Ljava/lang/String;Ljava/lang/String;)V
+ 
+     :goto_9
+     if-eqz v15, :cond_10

@@ -9,7 +9,7 @@
 /(vendor|system/vendor)/bin/hw/vendor\.oppo\.hardware\.biometrics\.fingerprint@2\.1-service              u:object_r:hal_fingerprint_default_exec:s0
 
 # Oppo HIDL hals
-/(vendor|system/vendor)/bin/hw/vendor\.oppo\.hardware\.camera\.oppoAlgoProcessService@1\.0-service u:object_r:hal_camera_default_exec:s0
+/(vendor|system/vendor)/bin/hw/vendor\.oppo\.hardware\.camera\.oppoAlgoProcessService@1\.0-service u:object_r:oppo_hal_oppoalgoprocessservice_exec:s0
 
 # Oppoalgo
 /vendor/bin/oppoalgo_daemon                                                            u:object_r:oppoalgo_daemon_exec:s0
@@ -76,3 +76,8 @@
 
 # Vibrator
 /sys/devices/platform/soc/1c40000.qcom,spmi/spmi-0/spmi0-03/1c40000.qcom,spmi:qcom,pmi632@3:qcom,vibrator@5700/leds/vibrator/vtg_level u:object_r:vibrator_dev:s0
+
+# OppoCamera
+/(vendor|system/vendor)/lib(64)?/libOppoAlgoClient\.so                                     u:object_r:same_process_hal_file:s0
+/(vendor|system/vendor)/lib(64)?/libOppoAPSMemMgr\.so                                      u:object_r:same_process_hal_file:s0
+/(vendor|system/vendor)/lib(64)?/vendor\.oppo\.hardware\.camera\.oppoAlgoProcessService@1\.0\.so u:object_r:same_process_hal_file:s0

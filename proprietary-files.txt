@@ -95,7 +95,6 @@ vendor/lib64/vendor.qti.hardware.bluetooth_sar@1.1.so|ece3dafc4447e8302109851c3a
 # Camera
 vendor/lib/hw/camera.trinket.so
 vendor/lib/imx386_PdafLibrary.so
-vendor/lib/libDxHdcp.so
 vendor/lib/libSNPE.so
 vendor/lib/libSTDualCamCaptureBokeh.so;DISABLE_CHECKELF
 vendor/lib/libSTdisp.so
@@ -176,17 +175,8 @@ vendor/lib/libarcvs.so
 # Camera bin
 vendor/bin/hw/vendor.oppo.hardware.camera.oppoAlgoProcessService@1.0-service
 
-# Camera calibration files
-system/etc/camera/Charming.cng
-system/etc/camera/M_Verify_Faster_Common_wp.model
-system/etc/camera/doubleloss_large.model
-system/etc/camera/faceTpl0.rgb32
-system/etc/camera/faceTpl1.rgb32
-system/etc/camera/gasryuv.model
-system/etc/camera/merged_model
-system/etc/camera/merged_model_post
-system/etc/camera/skinSeg.model
-vendor/etc/DxHDCP.cfg
+# Camera (OppoCamera)
+system/app/OppoCamera/OppoCamera.apk;OVERRIDES=Aperture
 
 # Camera chromatix
 vendor/lib/libchromatix_gc02m0_mono1_common.so
@@ -756,6 +746,17 @@ vendor/etc/camera/s5kgm1_xinli_chromatix.xml
 # Camera firmware
 vendor/firmware/cpp_firmware_v1_12_1.fw
 
+# Camera (Models)
+system/etc/camera/Charming.cng
+system/etc/camera/M_Verify_Faster_Common_wp.model
+system/etc/camera/doubleloss_large.model
+system/etc/camera/faceTpl0.rgb32
+system/etc/camera/faceTpl1.rgb32
+system/etc/camera/gasryuv.model
+system/etc/camera/merged_model
+system/etc/camera/merged_model_post
+system/etc/camera/skinSeg.model
+
 # Camera ois
 vendor/lib/libois_bu63165.so
 
@@ -1208,6 +1209,10 @@ vendor/lib64/libsdm-diag.so|ace628f2178ab6768f7318f36a9641ecaeb7b841
 vendor/lib64/libsdm-disp-vndapis.so|60da199073d2b0881bf075190a644b332503f39c
 vendor/lib64/libsdmextension.so|76ef1430f700480509b5f991e031447fea9ddb01
 vendor/lib64/libtinyxml2_1.so|ff32deb110acb02cb5def5f3404f9064c1276483
+
+# HDCP
+vendor/etc/DxHDCP.cfg
+vendor/lib/libDxHdcp.so
 
 # IPA Firmware - from RMX2050_11_C.10
 vendor/firmware/ipa_fws.b00|aade3e72dc69e9649b73fa9363985c0997437854

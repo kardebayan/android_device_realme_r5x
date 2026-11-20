@@ -1,0 +1,66 @@
+diff --git a/smali/com/oppo/camera/e/g$1$1.smali b/smali/com/oppo/camera/e/g$1$1.smali
+index 1d338b6..c01f0d6 100644
+--- a/smali/com/oppo/camera/e/g$1$1.smali
++++ b/smali/com/oppo/camera/e/g$1$1.smali
+@@ -107,6 +107,8 @@
+ .method public onDisconnected(Landroid/hardware/camera2/CameraDevice;)V
+     .locals 2
+ 
++    invoke-static {}, Lr5x/coloros/CameraClient;->onReleased()V
++
+     .line 236
+     new-instance v0, Ljava/lang/StringBuilder;
+ 
+@@ -203,6 +205,8 @@
+ .method public onError(Landroid/hardware/camera2/CameraDevice;I)V
+     .locals 2
+ 
++    invoke-static {}, Lr5x/coloros/CameraClient;->onReleased()V
++
+     .line 278
+     new-instance v0, Ljava/lang/StringBuilder;
+ 
+diff --git a/smali/com/oppo/camera/e/g$1.smali b/smali/com/oppo/camera/e/g$1.smali
+index e558afe..b4362c8 100644
+--- a/smali/com/oppo/camera/e/g$1.smali
++++ b/smali/com/oppo/camera/e/g$1.smali
+@@ -173,6 +173,8 @@
+ 
+     move-result-object v4
+ 
++    invoke-static {}, Lr5x/coloros/CameraClient;->onOpening()V
++
+     .line 191
+     invoke-virtual {v1, v2, v3, v4}, Landroid/hardware/camera2/CameraManager;->openCamera(Ljava/lang/String;Landroid/hardware/camera2/CameraDevice$StateCallback;Landroid/os/Handler;)V
+ 
+@@ -202,6 +204,8 @@
+     :catch_0
+     move-exception v1
+ 
++    invoke-static {}, Lr5x/coloros/CameraClient;->onReleased()V
++
+     .line 302
+     invoke-virtual {v1}, Ljava/lang/SecurityException;->printStackTrace()V
+ 
+@@ -227,6 +231,8 @@
+     :catch_1
+     move-exception v1
+ 
++    invoke-static {}, Lr5x/coloros/CameraClient;->onReleased()V
++
+     .line 295
+     invoke-virtual {v1}, Landroid/hardware/camera2/CameraAccessException;->printStackTrace()V
+ 
+diff --git a/smali/com/oppo/camera/e/g.smali b/smali/com/oppo/camera/e/g.smali
+index 0659c71..75326fe 100644
+--- a/smali/com/oppo/camera/e/g.smali
++++ b/smali/com/oppo/camera/e/g.smali
+@@ -2120,6 +2120,8 @@
+     .line 397
+     invoke-virtual {p1}, Landroid/hardware/camera2/CameraDevice;->close()V
+ 
++    invoke-static {}, Lr5x/coloros/CameraClient;->onReleased()V
++
+     .line 399
+     invoke-static {v0}, Lcom/oppo/camera/d;->b(Ljava/lang/String;)V
+ 

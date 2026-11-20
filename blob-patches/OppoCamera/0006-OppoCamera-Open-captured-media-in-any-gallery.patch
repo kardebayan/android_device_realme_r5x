@@ -1,0 +1,224 @@
+diff --git a/smali/com/oppo/camera/d/m.smali b/smali/com/oppo/camera/d/m.smali
+index 973f767..fde2a60 100644
+--- a/smali/com/oppo/camera/d/m.smali
++++ b/smali/com/oppo/camera/d/m.smali
+@@ -3204,7 +3204,7 @@
+ 
+     .line 1380
+     :try_start_5
+-    invoke-virtual {v8, v7, v6}, Landroid/content/ContentResolver;->insert(Landroid/net/Uri;Landroid/content/ContentValues;)Landroid/net/Uri;
++    invoke-static {v8, v7, v6}, Lr5x/coloros/CameraClient;->addLockedVideo(Landroid/content/ContentResolver;Landroid/net/Uri;Landroid/content/ContentValues;)Landroid/net/Uri;
+     :try_end_5
+     .catch Ljava/lang/Exception; {:try_start_5 .. :try_end_5} :catch_2
+     .catchall {:try_start_5 .. :try_end_5} :catchall_3
+diff --git a/smali/com/oppo/camera/e$42.smali b/smali/com/oppo/camera/e$42.smali
+index 1b78894..bf780c1 100644
+--- a/smali/com/oppo/camera/e$42.smali
++++ b/smali/com/oppo/camera/e$42.smali
+@@ -153,9 +153,7 @@
+ 
+     const-string v3, "com.coloros.gallery3d"
+ 
+-    invoke-static {v2, v3}, Lcom/oppo/camera/o/d;->a(Landroid/content/Context;Ljava/lang/String;)Z
+-
+-    move-result v2
++    const/4 v2, 0x1
+ 
+     if-eqz v2, :cond_7
+ 
+@@ -189,8 +187,6 @@
+     invoke-virtual {v2, p1, v0}, Landroid/content/Intent;->putExtra(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;
+ 
+     .line 11350
+-    invoke-virtual {v2, v3}, Landroid/content/Intent;->setPackage(Ljava/lang/String;)Landroid/content/Intent;
+-
+     .line 11352
+     iget-object p1, p0, Lcom/oppo/camera/e$42;->a:Lcom/oppo/camera/e;
+ 
+@@ -222,7 +218,7 @@
+ 
+     move-result-object p1
+ 
+-    invoke-virtual {p1, v2}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
++    invoke-static {p1, v2}, Lr5x/coloros/CameraClient;->startReview(Landroid/app/Activity;Landroid/content/Intent;)V
+ 
+     .line 11359
+     iget-object p1, p0, Lcom/oppo/camera/e$42;->a:Lcom/oppo/camera/e;
+diff --git a/smali/com/oppo/camera/e.smali b/smali/com/oppo/camera/e.smali
+index 73f0045..84c8d4f 100644
+--- a/smali/com/oppo/camera/e.smali
++++ b/smali/com/oppo/camera/e.smali
+@@ -9973,7 +9973,7 @@
+     const/4 v4, 0x0
+ 
+     .line 5972
+-    invoke-virtual {v2, v0, v3, v4}, Landroid/content/ContentResolver;->delete(Landroid/net/Uri;Ljava/lang/String;[Ljava/lang/String;)I
++    invoke-static {}, Lr5x/coloros/CameraClient;->clearSecureMedia()V
+     :try_end_0
+     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+ 
+@@ -10469,138 +10469,15 @@
+ .end method
+ 
+ .method private bx()Z
+-    .locals 9
+-
+-    const-string v0, "isLockAblumHasPicture X"
+-
+-    const-string v1, "CameraManager"
+-
+-    const-string v2, "isLockAblumHasPicture"
+-
+-    .line 9248
+-    invoke-static {v1, v2}, Lcom/oppo/camera/d;->b(Ljava/lang/String;Ljava/lang/String;)V
+-
+-    const-string v2, "content://com.oppo.gallery3d.albumsprovider/locked_pictures"
+-
+-    .line 9250
+-    invoke-static {v2}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;
+-
+-    move-result-object v4
+-
+-    .line 9251
+-    iget-object v2, p0, Lcom/oppo/camera/e;->bd:Landroid/app/Activity;
+-
+-    invoke-virtual {v2}, Landroid/app/Activity;->getContentResolver()Landroid/content/ContentResolver;
+-
+-    move-result-object v3
+-
+-    const/4 v5, 0x0
+-
+-    const/4 v6, 0x0
+-
+-    const/4 v7, 0x0
+-
+-    const/4 v8, 0x0
+-
+-    const/4 v2, 0x0
+-
+-    .line 9255
+-    :try_start_0
+-    invoke-virtual/range {v3 .. v8}, Landroid/content/ContentResolver;->query(Landroid/net/Uri;[Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor;
+-
+-    move-result-object v2
+-
+-    if-eqz v2, :cond_1
+-
+-    .line 9258
+-    invoke-interface {v2}, Landroid/database/Cursor;->moveToFirst()Z
+-
+-    move-result v3
+-    :try_end_0
+-    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+-    .catchall {:try_start_0 .. :try_end_0} :catchall_0
+-
+-    if-eqz v2, :cond_0
+-
+-    .line 9266
+-    invoke-interface {v2}, Landroid/database/Cursor;->close()V
+-
+-    .line 9269
+-    :cond_0
+-    invoke-static {v1, v0}, Lcom/oppo/camera/d;->b(Ljava/lang/String;Ljava/lang/String;)V
+-
+-    return v3
+-
+-    :cond_1
+-    :try_start_1
+-    const-string v3, "isLockAblumHasPicture, cursor is null"
+-
+-    .line 9260
+-    invoke-static {v1, v3}, Lcom/oppo/camera/d;->e(Ljava/lang/String;Ljava/lang/String;)V
+-    :try_end_1
+-    .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :catch_0
+-    .catchall {:try_start_1 .. :try_end_1} :catchall_0
+-
+-    if-eqz v2, :cond_2
+-
+-    .line 9266
+-    :goto_0
+-    invoke-interface {v2}, Landroid/database/Cursor;->close()V
+-
+-    .line 9269
+-    :cond_2
+-    invoke-static {v1, v0}, Lcom/oppo/camera/d;->b(Ljava/lang/String;Ljava/lang/String;)V
+-
+-    goto :goto_1
+-
+-    :catchall_0
+-    move-exception v3
+-
+-    goto :goto_2
+-
+-    :catch_0
+-    move-exception v3
+-
+-    .line 9263
+-    :try_start_2
+-    new-instance v4, Ljava/lang/StringBuilder;
+-
+-    invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+-
+-    const-string v5, "isLockAblumHasPicture, failed to open cursor error: "
+-
+-    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+-
+-    invoke-virtual {v4, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+-
+-    invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+-
+-    move-result-object v3
+-
+-    invoke-static {v1, v3}, Lcom/oppo/camera/d;->e(Ljava/lang/String;Ljava/lang/String;)V
+-    :try_end_2
+-    .catchall {:try_start_2 .. :try_end_2} :catchall_0
++    .locals 1
+ 
+-    if-eqz v2, :cond_2
++    iget-object v0, p0, Lcom/oppo/camera/e;->bd:Landroid/app/Activity;
+ 
+-    goto :goto_0
++    invoke-static {v0}, Lr5x/coloros/CameraClient;->hasSecureMedia(Landroid/content/Context;)Z
+ 
+-    :goto_1
+-    const/4 v0, 0x0
++    move-result v0
+ 
+     return v0
+-
+-    :goto_2
+-    if-eqz v2, :cond_3
+-
+-    .line 9266
+-    invoke-interface {v2}, Landroid/database/Cursor;->close()V
+-
+-    .line 9269
+-    :cond_3
+-    invoke-static {v1, v0}, Lcom/oppo/camera/d;->b(Ljava/lang/String;Ljava/lang/String;)V
+-
+-    throw v3
+ .end method
+ 
+ .method static synthetic by(Lcom/oppo/camera/e;)Ljava/lang/String;
+diff --git a/smali/com/oppo/camera/x.smali b/smali/com/oppo/camera/x.smali
+index cc23a66..b8aa411 100644
+--- a/smali/com/oppo/camera/x.smali
++++ b/smali/com/oppo/camera/x.smali
+@@ -1821,7 +1821,7 @@
+ 
+     move-result-object p0
+ 
+-    invoke-virtual {p1, p0, v0}, Landroid/content/ContentResolver;->insert(Landroid/net/Uri;Landroid/content/ContentValues;)Landroid/net/Uri;
++    invoke-static {p1, p0, v0}, Lr5x/coloros/CameraClient;->addLockedImage(Landroid/content/ContentResolver;Landroid/net/Uri;Landroid/content/ContentValues;)Landroid/net/Uri;
+     :try_end_0
+     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+ 
+@@ -2408,7 +2408,7 @@
+ 
+     move-result-object p0
+ 
+-    invoke-virtual {p1, p0, v2}, Landroid/content/ContentResolver;->insert(Landroid/net/Uri;Landroid/content/ContentValues;)Landroid/net/Uri;
++    invoke-static {p1, p0, v2}, Lr5x/coloros/CameraClient;->addLockedImage(Landroid/content/ContentResolver;Landroid/net/Uri;Landroid/content/ContentValues;)Landroid/net/Uri;
+ 
+     move-result-object p0
+ 

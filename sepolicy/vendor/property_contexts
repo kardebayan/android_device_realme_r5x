@@ -27,13 +27,10 @@ ro.fastbootd.available                  u:object_r:exported_default_prop:s0
 gsm.operator.numeric                    u:object_r:radio_prop:s0
 
 # Camera
-oppo.camera.                            u:object_r:vendor_camera_prop:s0
 persist.front.skipdisplay.enable        u:object_r:vendor_camera_prop:s0
 persist.aec.manual.mode                 u:object_r:vendor_camera_prop:s0
-persist.camera.                         u:object_r:vendor_camera_prop:s0
 ro.camera.                              u:object_r:vendor_camera_prop:s0
 persist.oppo.camera.                    u:object_r:vendor_camera_prop:s0
-vendor.oppo.camera.                     u:object_r:vendor_camera_prop:s0
 zoom.eis.enable                         u:object_r:vendor_camera_prop:s0
 
 # Oppo debug props
@@ -51,11 +48,9 @@ ro.sys.reserve.integrate                u:object_r:oppo_debug_prop:s0
 ro.vendor.aware_available               u:object_r:oppo_debug_prop:s0
 sys.build.display.full_id               u:object_r:oppo_debug_prop:s0
 ro.rf_version                           u:object_r:oppo_debug_prop:s0
-ro.separate.soft                        u:object_r:oppo_debug_prop:s0
 sys.oppo.network.rffeature              u:object_r:oppo_debug_prop:s0
 oppo.eng.factory.no                     u:object_r:oppo_debug_prop:s0
 oppo.device.imeicache                   u:object_r:oppo_debug_prop:s0
-ro.build.version.ota                    u:object_r:oppo_debug_prop:s0
 persist.oppo.                           u:object_r:oppo_debug_prop:s0
 
 # Oppo wlan prop
@@ -88,3 +83,8 @@ sys.boot_from_charger_mode          u:object_r:vendor_charger_prop:s0
 
 persist.radio.is_vonr_enabled_1      u:object_r:radio_prop:s0
 persist.radio.is_vonr_enabled_0      u:object_r:radio_prop:s0
+
+# OppoCamera
+vendor.oppo.camera.                       u:object_r:oppo_vendor_prop:s0
+persist.vendor.camera.vidhance.dmbr.mode u:object_r:oppo_vendor_prop:s0 exact string
+vendor.camera.arcsoft.vs.preview.bypass u:object_r:oppo_vendor_prop:s0 exact string

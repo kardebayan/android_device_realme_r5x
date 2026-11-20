@@ -1,0 +1,33 @@
+type oppo_hal_oppoalgoprocessservice, domain;
+type oppo_hal_oppoalgoprocessservice_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(oppo_hal_oppoalgoprocessservice)
+hal_server_domain(oppo_hal_oppoalgoprocessservice, hal_oppoalgoprocessservice)
+hal_attribute_hwservice(hal_oppoalgoprocessservice, hal_oppoalgoprocessservice_hwservice)
+
+allow hal_oppoalgoprocessservice_client hal_oppoalgoprocessservice_server:binder { call transfer };
+allow hal_oppoalgoprocessservice_server hal_oppoalgoprocessservice_client:binder { call transfer };
+allow hal_oppoalgoprocessservice_client hal_oppoalgoprocessservice_server:fd use;
+allow hal_oppoalgoprocessservice_server hal_oppoalgoprocessservice_client:fd use;
+
+allow oppo_hal_oppoalgoprocessservice oppo_hal_oppoalgoprocessservice_exec:file { read getattr map execute entrypoint open };
+allow oppo_hal_oppoalgoprocessservice ion_device:chr_file { ioctl read write getattr open };
+allow oppo_hal_oppoalgoprocessservice storage_file:dir { ioctl read write getattr lock append map add_name remove_name search rmdir open };
+allow oppo_hal_oppoalgoprocessservice storage_file:lnk_file { ioctl read write create getattr lock map open };
+allow oppo_hal_oppoalgoprocessservice vendor_qdsp_device:chr_file { ioctl read write open };
+allow oppo_hal_oppoalgoprocessservice mnt_user_file:dir { ioctl read getattr lock search open };
+allow oppo_hal_oppoalgoprocessservice mnt_user_file:lnk_file { ioctl read write getattr lock map open };
+allow oppo_hal_oppoalgoprocessservice platform_app:fd use;
+allow oppo_hal_oppoalgoprocessservice platform_app:binder { call transfer };
+allow oppo_hal_oppoalgoprocessservice proc_sysrq:file { ioctl read write getattr lock append map open };
+allow oppo_hal_oppoalgoprocessservice adsprpcd_file:dir { getattr search };
+allow oppo_hal_oppoalgoprocessservice adsprpcd_file:file { read getattr open };
+allow oppo_hal_oppoalgoprocessservice sdcardfs:dir search;
+allow oppo_hal_oppoalgoprocessservice persist_camera_file:file { read write create getattr setattr unlink open };
+allow oppo_hal_oppoalgoprocessservice persist_camera_file:dir { ioctl read write getattr lock append map add_name remove_name search rmdir open };
+allow oppo_hal_oppoalgoprocessservice mnt_vendor_file:lnk_file { ioctl read getattr lock map open };
+allow oppo_hal_oppoalgoprocessservice mnt_vendor_file:dir { ioctl read getattr lock search open };
+allow oppo_hal_oppoalgoprocessservice mnt_vendor_file:file { read getattr setattr unlink open };
+allow oppo_hal_oppoalgoprocessservice gpu_device:chr_file { ioctl read write map open };
+
+allow oppo_hal_oppoalgoprocessservice hal_hypnus_hwservice:hwservice_manager find;
